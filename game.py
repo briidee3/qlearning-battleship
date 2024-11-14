@@ -14,11 +14,11 @@ class game:
     self.player1 = player(board_size)
     self.player2 = player(board_size)
 
-  def start(self):
+  def start(self): #let the games begin
     self.place_phase()
     print("Player", self.shooting_phase(),"wins!")
 
-  def place_phase(self):
+  def place_phase(self): #asks for ship placements from player 1, then player 2
     print("Player 1 placing phase:")
     ship = 0
     while ship < self.num_ships:
@@ -50,12 +50,14 @@ class game:
         self.player2.print_board()
         ship = ship + 1
 
-  def shooting_phase(self):
+  def shooting_phase(self): #asks for player 1's guesses and player 2's guesses back and forth until someone wins
     winner = 0
-    win_condition = 17
+    win_condition = 17 #for a full size board
     while winner == 0:
       success = False
       while not success:
+        print("Player 1's guesses (2:unknown, 1:miss, 0:hit):")
+        self.player2.print_guesses()
         print("Where does player 1 want to attack ?")
         print("Enter row 0 to", self.board_size - 1, ":")
         row = int(input())
@@ -69,9 +71,11 @@ class game:
           print("Score:",score)
           success = True
           if score == win_condition:
-            return 1
+            return 1 #returns the winner as player 1
       success = False
       while not success:
+        print("Player 2's guesses (2:unknown, 1:miss, 0:hit):")
+        self.player1.print_guesses()
         print("Where does player 2 want to attack ?")
         print("Enter row 0 to", self.board_size - 1, ":")
         row = int(input())
@@ -85,5 +89,5 @@ class game:
           print("Score:", score)
           success = True
           if score == win_condition:
-            return 2
+            return 2 #returns the winner as player 2
     return winner

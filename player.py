@@ -80,14 +80,8 @@ class player:
       print("Miss")
       return 0
 
-  def update_score(self):
+  def update_score(self): #updates and returns score
     score = 0
     for row in self.enemy_guesses:
       score += row.count(0)
     return score
-
-  def win_condition(self):
-    win_condition = 0
-    for row in self.board:
-      win_condition += row.count('s')
-    return win_condition
