@@ -1,6 +1,8 @@
 from ship import ship
+import random
 class player:
-  def __init__(self, board_size):
+  def __init__(self, board_size, type = "human"):
+    self.type = type
     self.enemy_score = 0
     self.board_size = board_size
     # Initialize a board with empty cells
@@ -20,6 +22,9 @@ class player:
     for i, row in enumerate(self.enemy_guesses):
       print(f"{i} " + " ".join(map(str,row)))
     print()
+
+  def get_board(self):
+    return self.board
 
   def place_ship(self, row, col, ship, direction):
     """
@@ -85,3 +90,46 @@ class player:
     for row in self.enemy_guesses:
       score += row.count(0)
     return score
+
+  def ship_input(self, ship_length):
+    board = self.board
+    if self.type == "human":
+      print("Where does player 1 want to place the ship of length", ship_length, "?")
+      print("Enter row 0 to", self.board_size - 1, ":")
+      row = int(input())
+      print("Enter column 0 to", self.board_size - 1, ":")
+      col = int(input())
+      print("Enter direction (H or V) :")
+      direction = input()
+      return [row, col, direction]
+    elif self.type == "random":
+      row = random.randint(0,9)
+      col = random.randint(0,9)
+      direction = random.choice(['H','V'])
+      return [row, col, direction]
+    elif self.type == "agent":
+      # take input from agent
+      row = 0
+      col = 0
+      direction = 'H'
+      return [row, col, direction]
+
+  def shoot_input(self, guesses, enemy):
+    if self.type == "human":
+      print("Player 1's guesses (2:unknown, 1:miss, 0:hit):")
+      enemy.print_guesses()
+      print("Where does player 1 want to attack ?")
+      print("Enter row 0 to", self.board_size - 1, ":")
+      row = int(input())
+      print("Enter column 0 to", self.board_size - 1, ":")
+      col = int(input())
+      return [row, col]
+    elif self.type == "random":
+      row = random.randint(0,9)
+      col = random.randint(0,9)
+      return [row, col]
+    elif self.type == "agent":
+      # take input from agent
+      row = 0
+      col = 0
+      return [row, col]

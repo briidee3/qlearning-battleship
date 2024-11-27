@@ -2,7 +2,7 @@ from player import player
 from ship import ship
 
 class game:
-  def __init__(self, board_size, num_ships):
+  def __init__(self, board_size, num_ships, player1_type, player2_type):
     self.num_ships = num_ships
     self.board_size = board_size
     carrier = ship(5)
@@ -11,8 +11,8 @@ class game:
     submarine = ship(3)
     destroyer = ship(2)
     self.ships = [destroyer, submarine, cruiser, battleship, carrier]
-    self.player1 = player(board_size)
-    self.player2 = player(board_size)
+    self.player1 = player(board_size, player1_type)
+    self.player2 = player(board_size, player2_type)
 
   def start(self): #let the games begin
     self.place_phase()
@@ -22,13 +22,10 @@ class game:
     print("Player 1 placing phase:")
     ship = 0
     while ship < self.num_ships:
-      print("Where does player 1 want to place the ship of length",self.ships[ship].get_length(),"?")
-      print("Enter row 0 to",self.board_size-1,":")
-      row = int(input())
-      print("Enter column 0 to",self.board_size-1,":")
-      col = int(input())
-      print("Enter direction (H or V) :")
-      direction = input()
+      placement = self.player1.ship_input(self.ships[ship].get_length())
+      row = placement[0]
+      col = placement[1]
+      direction = placement[2]
       if self.player1.place_ship(row, col, self.ships[ship], direction) != 6:
         print("Try again")
       else:
@@ -37,13 +34,10 @@ class game:
     print("Player 2 placing phase:")
     ship = 0
     while ship < self.num_ships:
-      print("Where does player 2 want to place the ship of length",self.ships[ship].get_length(),"?")
-      print("Enter row 0 to",self.board_size-1,":")
-      row = int(input())
-      print("Enter column 0 to",self.board_size-1,":")
-      col = int(input())
-      print("Enter direction (H or V) :")
-      direction = input()
+      placement = self.player2.ship_input(self.ships[ship].get_length())
+      row = placement[0]
+      col = placement[1]
+      direction = placement[2]
       if self.player2.place_ship(row, col, self.ships[ship], direction) != 6:
         print("Try again")
       else:
@@ -56,13 +50,9 @@ class game:
     while winner == 0:
       success = False
       while not success:
-        print("Player 1's guesses (2:unknown, 1:miss, 0:hit):")
-        self.player2.print_guesses()
-        print("Where does player 1 want to attack ?")
-        print("Enter row 0 to", self.board_size - 1, ":")
-        row = int(input())
-        print("Enter column 0 to", self.board_size - 1, ":")
-        col = int(input())
+        position = self.player1.shoot_input(self.player2.enemy_guesses,self.player2)
+        row = position[0]
+        col = position[1]
         if self.player2.attack(row, col) == -1:
           print("Try again")
         else:
@@ -74,13 +64,9 @@ class game:
             return 1 #returns the winner as player 1
       success = False
       while not success:
-        print("Player 2's guesses (2:unknown, 1:miss, 0:hit):")
-        self.player1.print_guesses()
-        print("Where does player 2 want to attack ?")
-        print("Enter row 0 to", self.board_size - 1, ":")
-        row = int(input())
-        print("Enter column 0 to", self.board_size - 1, ":")
-        col = int(input())
+        position = self.player2.shoot_input(self.player1.enemy_guesses,self.player1)
+        row = position[0]
+        col = position[1]
         if self.player1.attack(row, col) == -1:
           print("Try again")
         else:
