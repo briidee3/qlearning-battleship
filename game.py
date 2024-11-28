@@ -46,7 +46,9 @@ class game:
 
   def shooting_phase(self): #asks for player 1's guesses and player 2's guesses back and forth until someone wins
     winner = 0
-    win_condition = 17 #for a full size board
+    win_condition = 0
+    for i in range(self.num_ships):
+      win_condition += self.ships[i].get_length()
     while winner == 0:
       success = False
       while not success:
