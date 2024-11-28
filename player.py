@@ -103,8 +103,8 @@ class player:
       direction = input()
       return [row, col, direction]
     elif self.type == "random":
-      row = random.randint(0,9)
-      col = random.randint(0,9)
+      row = random.randint(0,self.board_size-1)
+      col = random.randint(0,self.board_size-1)
       direction = random.choice(['H','V'])
       return [row, col, direction]
     elif self.type == "agent":
@@ -125,8 +125,8 @@ class player:
       col = int(input())
       return [row, col]
     elif self.type == "random":
-      row = random.randint(0,9)
-      col = random.randint(0,9)
+      row = random.randint(0,self.board_size-1)
+      col = random.randint(0,self.board_size-1)
       return [row, col]
     elif self.type == "agent":
       # take input from agent
