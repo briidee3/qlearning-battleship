@@ -126,16 +126,25 @@ class QAgent:
         # go through the process for the given number of epochs
         for cur_epoch in range(self.epochs):
             print("\tTable:\t%s\tEpoch:\t%d" % (self.name, cur_epoch))
-        
+            self.do_epoch()
+        print("\nDone training Q-table %s!" % self.name)
         
     
     # run through an entire epoch
     def do_epoch(self):
-        # set up the new epoch
+        # set up the new epoch, starting at a randomly set board state
         self.new_epoch()
 
         # go through until the game is won
+        for i in range(np.shape(self.cur_state)[0]):    # max num of turns is length of board
+            # check if in win state
+            if self.num_hits == self.num_ships:
+                # if so, done with epoch, break from loop
+                print("\t\tCurrent epoch done.")
+                break
 
+            # take next step
+            self.step()
 
 
     # set things up for a new epoch
@@ -224,7 +233,7 @@ class QAgent:
         # hold the set of actions
         self.cur_actions = []
         # go through each of the cells of the current state
-        for i in range(len(self.cur_state)):
+        for i in range(np.shape(self.cur_state)[0]):
             # if the cell is empty, then it's a possible action; add its index to the set of possible actions
             if not self.cur_state[i]:
                 self.cur_actions.append(i)
@@ -250,8 +259,17 @@ class QAgent:
     def set_enemy_board(self, new_enemy_board = np.zeros((16), dtype = Config.cell_state_dtype)):
         print("\nSetting new enemy board...")
         self.enemy_board = new_enemy_board
-        self.gen_possible_boards()
         print("Enemy board set.\n")
+        # generate all possible board states for the board
+        self.gen_possible_boards()
+        
+        # reset init_num_ships
+        self.init_num_ships = 0
+        # count the number of cells with a ship
+        for i in new_enemy_board:
+            if i:
+                self.init_num_ships += 1
+
 
 
     # generate the set of possible board states given the current enemy board
@@ -366,7 +384,7 @@ class QAgent:
 
 
 
-    ## UNUSED:
+    ## UNUSED: (temporarily kept here for reference)
 """
     # Initialize a new Q-table based on the configuration options set in Config.py
     def old_new_q_table(self):
