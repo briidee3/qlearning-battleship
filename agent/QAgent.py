@@ -14,8 +14,8 @@ import numpy as np
 import os
 import random
 
-import Config
-import StateConversion as sc
+from . import Config
+from . import StateConversion as sc
 
 
 # Define a class for use in training a Q-Learning AI agent on a section of a Battleship board
@@ -31,17 +31,15 @@ class QAgent:
         # learning rate
         self.learn_rate = learn_rate
         # used to handle importance of minimizing number of turns, i.e. so quicker wins are preferred
-        #self.turn_count_subtract_rate = 0.02
-        # set the decay constant used for determining explore vs exploit
-        self.exploration_prob = exploration_prob
+        #self.turn_count_subtract_rate = 0.02b
         # number of epochs to run through
         self.epochs = epochs
         # name of q-table (for use in saving and loading)
         self.name = name
-        # epsilon-greedy policy params
-        self.epsilon_max = epsilon_max
-        self.epsilon_min = epsilon_min
-        self.decay_rate = decay_rate
+        # epsilon-greedy policy params (explore vs exploit)
+        self.epsilon_max = epsilon_max  # max/initial epsilon val
+        self.epsilon_min = epsilon_min  # min possible epsilon val (decreases over time)
+        self.decay_rate = decay_rate    # decay constant 
         # the current value of epsilon
         self.epsilon = epsilon_max
 
@@ -51,8 +49,6 @@ class QAgent:
         # Load each partition of the Q-table into their respective portions of the Q-table
         if Config.load_q_table:
             self.load_q_table()
-        # otherwise, initialize the Q-table as per the configuration in "Config.py"
-        self.q_table = self.new_q_table()
 
 
         ## Game state
@@ -83,7 +79,7 @@ class QAgent:
         ## Agent game interaction
         # represent the set of all possible board states given the enemy board
         self.possible_boards = []
-        self.gen_possible_boards()  # and generate them
+        #self.gen_possible_boards()  # and generate them
         # translate current action to board coordinate (each element corresponds to an index of self.shot_board)
         self.cur_actions = np.zeros(np.shape(self.shot_board), dtype = Config.cell_state_dtype)
         # current action to be taken
@@ -93,7 +89,12 @@ class QAgent:
         # represent the next state
         self.next_state = self.cur_state
         # represent the current Q-max for the next state
-        self.q_max = np.max(self.q_table[self.next_state_num])
+        self.q_max = Config.q_value_dtype(0)
+
+    
+    # Initialize the Q-table
+    def init(self):
+        self.q_table = self.new_q_table()
 
 
     # calculate the new q value for a given state/action pair (as inferred by given coords for an action)
@@ -126,16 +127,25 @@ class QAgent:
         # go through the process for the given number of epochs
         for cur_epoch in range(self.epochs):
             print("\tTable:\t%s\tEpoch:\t%d" % (self.name, cur_epoch))
-        
+            self.do_epoch()
+        print("\nDone training Q-table %s!" % self.name)
         
     
     # run through an entire epoch
     def do_epoch(self):
-        # set up the new epoch
+        # set up the new epoch, starting at a randomly set board state
         self.new_epoch()
 
         # go through until the game is won
+        for i in range(np.shape(self.cur_state)[0]):    # max num of turns is length of board
+            # check if in win state
+            if self.num_hits == self.num_ships:
+                # if so, done with epoch, break from loop
+                print("\t\tCurrent epoch done.")
+                break
 
+            # take next step
+            self.step()
 
 
     # set things up for a new epoch
@@ -224,13 +234,13 @@ class QAgent:
         # hold the set of actions
         self.cur_actions = []
         # go through each of the cells of the current state
-        for i in range(len(self.cur_state)):
+        for i in range(np.shape(self.cur_state)[0]):
             # if the cell is empty, then it's a possible action; add its index to the set of possible actions
             if not self.cur_state[i]:
                 self.cur_actions.append(i)
     
 
-    # get the next state
+    # get the next state during a game
     def calc_next_state(self):
         # initialize the next state to the current state
         self.next_state = np.copy(self.cur_state)
@@ -250,8 +260,17 @@ class QAgent:
     def set_enemy_board(self, new_enemy_board = np.zeros((16), dtype = Config.cell_state_dtype)):
         print("\nSetting new enemy board...")
         self.enemy_board = new_enemy_board
-        self.gen_possible_boards()
         print("Enemy board set.\n")
+        # generate all possible board states for the board
+        self.gen_possible_boards()
+        
+        # reset init_num_ships
+        self.init_num_ships = 0
+        # count the number of cells with a ship
+        for i in new_enemy_board:
+            if i:
+                self.init_num_ships += 1
+
 
 
     # generate the set of possible board states given the current enemy board
@@ -366,7 +385,7 @@ class QAgent:
 
 
 
-    ## UNUSED:
+    ## UNUSED: (temporarily kept here for reference)
 """
     # Initialize a new Q-table based on the configuration options set in Config.py
     def old_new_q_table(self):
