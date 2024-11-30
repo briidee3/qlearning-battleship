@@ -90,7 +90,6 @@ class player:
     else:
       return 5
 
-
   def attack(self, row, col):
     """
     Mark an attack on the board.
