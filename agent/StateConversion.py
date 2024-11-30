@@ -14,7 +14,7 @@
 #   utilized in the final version of the program.
 
 import numpy as np
-import Config
+from . import Config
 
 
 # Convert state to number

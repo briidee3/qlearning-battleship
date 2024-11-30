@@ -2,11 +2,12 @@
 # Train the quadrant agents on each quadrant of a 8x8 battleship board.
 
 
-import Config
-import QAgent as qa
+from . import Config
+from . import QAgent as qa
 
 import numpy as np
 import multiprocessing as mp
+import os
 
 
 # Define a class to use for management of training Q-tables in parallel
@@ -27,11 +28,12 @@ class TrainSubtables:
             self.agents.append(qa.QAgent(name = "qt_%d" % i))
         # the processes to be used for training
         self.processes = []
+        print(os.path.isdir("q_table"))
 
     
     # Generate a random ship placement for use in training
-    def gen_board_state(self):
-        return
+    def set_board_state(self, board = np.zeros((8, 8), dtype = Config.cell_state_dtype)):
+        self.board_state = board
 
 
     # Train the given Q-learning agent

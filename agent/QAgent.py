@@ -14,8 +14,8 @@ import numpy as np
 import os
 import random
 
-import Config
-import StateConversion as sc
+from . import Config
+from . import StateConversion as sc
 
 
 # Define a class for use in training a Q-Learning AI agent on a section of a Battleship board
@@ -31,17 +31,15 @@ class QAgent:
         # learning rate
         self.learn_rate = learn_rate
         # used to handle importance of minimizing number of turns, i.e. so quicker wins are preferred
-        #self.turn_count_subtract_rate = 0.02
-        # set the decay constant used for determining explore vs exploit
-        self.exploration_prob = exploration_prob
+        #self.turn_count_subtract_rate = 0.02b
         # number of epochs to run through
         self.epochs = epochs
         # name of q-table (for use in saving and loading)
         self.name = name
-        # epsilon-greedy policy params
-        self.epsilon_max = epsilon_max
-        self.epsilon_min = epsilon_min
-        self.decay_rate = decay_rate
+        # epsilon-greedy policy params (explore vs exploit)
+        self.epsilon_max = epsilon_max  # max/initial epsilon val
+        self.epsilon_min = epsilon_min  # min possible epsilon val (decreases over time)
+        self.decay_rate = decay_rate    # decay constant 
         # the current value of epsilon
         self.epsilon = epsilon_max
 
@@ -51,8 +49,6 @@ class QAgent:
         # Load each partition of the Q-table into their respective portions of the Q-table
         if Config.load_q_table:
             self.load_q_table()
-        # otherwise, initialize the Q-table as per the configuration in "Config.py"
-        self.q_table = self.new_q_table()
 
 
         ## Game state
@@ -93,7 +89,12 @@ class QAgent:
         # represent the next state
         self.next_state = self.cur_state
         # represent the current Q-max for the next state
-        self.q_max = np.max(self.q_table[self.next_state_num])
+        self.q_max = Config.q_value_dtype(0)
+
+    
+    # Initialize the Q-table
+    def init(self):
+        self.q_table = self.new_q_table()
 
 
     # calculate the new q value for a given state/action pair (as inferred by given coords for an action)
