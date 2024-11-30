@@ -45,7 +45,7 @@ def state_to_num(state = np.zeros((Config.num_cells), dtype = Config.cell_state_
 #   number to base <num_cell_states>, where each of the digits in the base <num_cell_states> representation are a cell state.
 #   https://stackoverflow.com/questions/38448013/how-can-i-list-all-possibilities-of-a-3x3-board-with-3-different-states
 # TL;DR: This function is essentially just converting the given number (num) to base <num_cell_states> (e.g. base 3 for our purposes)
-def num_to_state(num = 3, base = Config.num_cell_states, cell_count = Config.num_cells):
+def num_to_state(num = int(3), base = Config.num_cell_states, cell_count = Config.num_cells):
     # return 0 when num is empty
     if num == 0:
         return [0]
@@ -60,6 +60,6 @@ def num_to_state(num = 3, base = Config.num_cell_states, cell_count = Config.num
         num /= base
     
     # put the new base <num_cell_states> number into an array to represent the board state
-    return ([0 for _ in range(cell_count - 1)] + digits[::-1])[-cell_count:][::-1]
+    return np.array(([0 for _ in range(cell_count - 1)] + digits[::-1])[-cell_count:][::-1], dtype = Config.cell_state_dtype)
 
 
