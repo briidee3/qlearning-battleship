@@ -21,7 +21,7 @@ import StateConversion as sc
 class QAgent:
 
     def __init__(self, enemy_board = np.array((Config.num_cells), dtype = "bool"),
-        discount_factor = 0.98, learn_rate = 0.8, turn_count_subtract_rate = 0.02, decay_const = 0.001, epochs = 1000):
+        discount_factor = 0.98, learn_rate = 0.8, exploration_prob = 0.2, epochs = 1000):
 
         ## Hyperparameters
         # discount factor (0<discount_factor<=1), importance of future rewards
@@ -29,9 +29,9 @@ class QAgent:
         # learning rate
         self.learn_rate = learn_rate
         # used to handle importance of minimizing number of turns, i.e. so quicker wins are preferred
-        self.turn_count_subtract_rate = 0.02
+        #self.turn_count_subtract_rate = 0.02
         # set the decay constant used for determining explore vs exploit
-        self.decay_const = decay_const
+        self.exploration_prob = exploration_prob
         # number of epochs to run through
         self.epochs = epochs
 
@@ -48,7 +48,7 @@ class QAgent:
         ## Game state
         # action can only be True or False, so using booleans for that, no var needed to represent states
         # define the board used for representing shots (empty, hit, miss)
-        #self.shot_board = shot_board
+        self.shot_board = np.zeros(np.shape(enemy_board), dtype = "bool")
         # represent the basis of truth, i.e. the enemy board (true, false -- depends on whether ship occupies cell or not)
         self.enemy_board = enemy_board
         # used to keep track of the agent's score
@@ -58,7 +58,7 @@ class QAgent:
         # represent the passage of time by keeping track of turns 
         self.cur_turn = 1
         # number cells occupied by enemy ships; initialized to 0, then set by counting number of true states in the enemy board
-        #self.init_num_ships = 0
+        self.init_num_ships = 0
         #for i in range(enemy_board.shape[0]):
         #    for j in range(enemy_board.shape[1]):
         #        if enemy_board[i][j]:
@@ -66,7 +66,7 @@ class QAgent:
         # since the Q-max depends on the number of cells and the weight of hits, it's set to hit_weight * num_cells
         #   this is the hypothetical maximum, however it is unacheivable in many scenarios, i.e. when not every single cell
         #   is going to be a hit
-        self.q_max = Config.hit_weight * Config.num_cells   #self.init_num_ships
+        self.q_max_possible = Config.hit_weight * self.init_num_ships * (self.discount_factor ** self.init_num_ships)
 
 
     # get the maximum possible q-value for the all possible actions after the given state
@@ -79,6 +79,7 @@ class QAgent:
             true_max += 1 - (i * self.turn_count_subtract_rate)
 
         return cur_max
+
 
     # calculate q-value using Bellman's equation
     #   i.e. q(s, a) = R(s, a) + gamma * q_max(s', a')
@@ -106,15 +107,14 @@ class QAgent:
         return (1 - self.learn_rate) * (self.q_table[self.shot_board][action_loc]) + self.learn_rate * self.calc_q_val_bellman_at_cell(action_loc)
 
 
-
     # Train the Q-table for the given number of epochs on the given data
-    def train(self, data = self.enemy_board, epochs = self.num_turns):
+    def train(self, data = np.zeros((16)), epochs = 1000):
         # go through the process for the given number of epochs
         for cur_epoch in range(epochs):
             return
 
 
-    # Initialize a new Q-table based on the configuration options set in Config.py, as well as those passed to the class initializer
+    # Initialize a new Q-table based on the configuration options set in Config.py
     def new_q_table(self):
         # get the partition cutoffs given the current config
         part_cutoffs = Config.part_cutoffs
@@ -134,7 +134,7 @@ class QAgent:
                 # create a NxN board of int8s to represent the q values for the current board state
                 #   where N = width (or height, since it's a square) of the board
                 #   (represented as a 1D array of length N^2)
-                new_table[cur_part].append(np.array((Config.num_cells), dtype = Config.cell_state_dtype))
+                new_table[cur_part].append(np.zeros((Config.num_cells), dtype = Config.cell_state_dtype))
         
         # return the new table as a list of ndarrays of shape(partition_length, num_cells)
         return [np.array(new_table[i], dtype = Config.cell_state_dtype) for i in range(Config.num_q_parts)]
@@ -197,7 +197,7 @@ class QAgent:
         qt_isparts = self.parts_exist(name)
         # handle if q-table partitions not found
         if False in qt_isparts:
-            print("Q-Table partition %d not found. Using fallback (initialize new empty Q-Table)...")
+            print("Q-Table partition(s) not found. Using fallback (initialize new empty Q-Table)...")
             self.q_table = self.new_q_table()
             return False
         
@@ -228,3 +228,34 @@ class QAgent:
         
         return qt_isparts
 
+
+
+
+    ## UNUSED:
+
+    # Testing a new idea for lowering number of actions per state dynamically
+    def new_new_q_table(self):
+        # store the new Q-table as a multidimensional list, where each element contains all states pertaining to a given turn
+        new_table = [[] for _ in range(Config.num_cells)]
+
+        # go through for each possible state of the board
+        for cur_state in range(Config.primes_list[Config.num_cell_states - 2] ** Config.num_cells):
+            # determine and temporarily store the current turn, as found by the number of empty (0) cells in the current state
+            cur_turn = -1       # starting at -1 to offset
+            for i in sc.num_to_state(cur_state):
+                if not i:
+                    cur_turn += 1
+
+            # state is full, can't do anything, so, no actions
+            if cur_turn == -1:
+                continue
+            
+            # add to element in new_table pertaining to the turn of the current state
+            new_table[cur_turn].append(np.zeros((Config.num_cells - cur_turn), dtype = Config.cell_state_dtype))
+        
+        print("Lengths of table:")
+        for turn in range(len(new_table)):
+            print("\tTurn %d:\t%d" % (turn, len(new_table[turn])))
+        
+        # return the new table as a list of ndarrays of shape(partition_length, num_cells)
+        return [np.array(new_table[i], dtype = Config.cell_state_dtype) for i in range(Config.num_q_parts)]
