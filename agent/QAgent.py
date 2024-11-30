@@ -83,7 +83,7 @@ class QAgent:
         ## Agent game interaction
         # represent the set of all possible board states given the enemy board
         self.possible_boards = []
-        self.gen_possible_boards()  # and generate them
+        #self.gen_possible_boards()  # and generate them
         # translate current action to board coordinate (each element corresponds to an index of self.shot_board)
         self.cur_actions = np.zeros(np.shape(self.shot_board), dtype = Config.cell_state_dtype)
         # current action to be taken
@@ -239,7 +239,7 @@ class QAgent:
                 self.cur_actions.append(i)
     
 
-    # get the next state
+    # get the next state during a game
     def calc_next_state(self):
         # initialize the next state to the current state
         self.next_state = np.copy(self.cur_state)
