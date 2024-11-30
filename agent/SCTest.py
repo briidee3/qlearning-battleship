@@ -3,7 +3,7 @@
 # Short test of StateConversion 
 
 import numpy as np
-import StateConversion as sc
+from . import StateConversion as sc
 
 
 init_state = np.zeros((25), dtype="int8")
