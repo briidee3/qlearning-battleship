@@ -32,7 +32,7 @@ class player:
 
     Parameters:
     - row, col: Starting position of the ship
-    - length: Length of the ship
+    - ship: Ship object
     - direction: 'H' for horizontal or 'V' for vertical
     """
     if direction == 'H':
@@ -62,6 +62,34 @@ class player:
     else:
       print("Invalid direction. Use 'H' for horizontal or 'V' for vertical.")
       return 5
+
+  def place_ship_without_printing(self, row, col, ship, direction):
+    """
+    Places a ship on the board without printing.
+    """
+    if direction == 'H':
+      if col + ship > self.board_size:
+        return 1
+      for i in range(ship):
+        if self.board[row][col + i] != '~':
+          return 2
+      for i in range(ship):
+        self.board[row][col + i] = 'S'
+      return 6
+
+    elif direction == 'V':
+      if row + ship > self.board_size:
+        return 3
+      for i in range(ship):
+        if self.board[row + i][col] != '~':
+          return 4
+      for i in range(ship):
+        self.board[row + i][col] = 'S'
+      return 6
+
+    else:
+      return 5
+
 
   def attack(self, row, col):
     """
@@ -109,9 +137,9 @@ class player:
       return [row, col, direction]
     elif self.type == "agent":
       # take input from agent
-      row = 0
-      col = 0
-      direction = 'H'
+      row = random.randint(0, self.board_size - 1)
+      col = random.randint(0, self.board_size - 1)
+      direction = random.choice(['H', 'V'])
       return [row, col, direction]
 
   def shoot_input(self, guesses, enemy):
@@ -133,3 +161,4 @@ class player:
       row = 0
       col = 0
       return [row, col]
+

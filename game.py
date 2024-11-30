@@ -1,6 +1,20 @@
 from player import player
 from ship import ship
 
+def create_random_opponent(board_size, num_ships):
+  random_opponent = player(board_size, 'random')
+  ships = [2, 3, 3, 4, 5]
+  ship_num = 0
+  while ship_num < num_ships:
+    placement = random_opponent.ship_input(ships[ship_num])
+    row = placement[0]
+    col = placement[1]
+    direction = placement[2]
+    if random_opponent.place_ship_without_printing(row, col, ships[ship_num], direction) == 6:
+      ship_num = ship_num + 1
+  random_opponent.print_board()
+  return random_opponent
+
 class game:
   def __init__(self, board_size, num_ships, player1_type, player2_type):
     self.num_ships = num_ships
