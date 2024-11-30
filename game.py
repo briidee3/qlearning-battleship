@@ -1,11 +1,10 @@
 from player import player
 from ship import ship
 
-def create_random_opponent(board_size, num_ships):
+def create_random_opponent(board_size, ships):
   random_opponent = player(board_size, 'random')
-  ships = [2, 3, 3, 4, 5]
   ship_num = 0
-  while ship_num < num_ships:
+  while ship_num < len(ships):
     placement = random_opponent.ship_input(ships[ship_num])
     row = placement[0]
     col = placement[1]
