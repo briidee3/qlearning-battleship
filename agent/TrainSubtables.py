@@ -49,7 +49,7 @@ class TrainSubtables:
         # train the agent
         agent.train()
         # once done, save the agent locally
-        agent.save()
+        agent.save_q_table()
 
 
     # Run through the process of spinning up processes and training agents
