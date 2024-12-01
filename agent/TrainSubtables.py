@@ -8,6 +8,11 @@ from . import QAgent as qa
 import numpy as np
 import multiprocessing as mp
 import os
+from pathlib import Path
+
+
+# for use accessing q_table save directory, which is local to the agent directory
+path = Path(__file__).parent
 
 
 # Define a class to use for management of training Q-tables in parallel
@@ -28,7 +33,6 @@ class TrainSubtables:
             self.agents.append(qa.QAgent(name = "qt_%d" % i))
         # the processes to be used for training
         self.processes = []
-        print(os.path.isdir("q_table"))
 
     
     # Generate a random ship placement for use in training
@@ -38,8 +42,10 @@ class TrainSubtables:
 
     # Train the given Q-learning agent
     def train_agent(self, agent, table_slice):
+        # initialize the q-table of the agent
+        agent.init()
         # set the board for the agent
-        agent.set_enemy_board(table_slice)
+        agent.set_enemy_board(np.ndarray.flatten(table_slice))
         # train the agent
         agent.train()
         # once done, save the agent locally
@@ -48,21 +54,20 @@ class TrainSubtables:
 
     # Run through the process of spinning up processes and training agents
     def run_training_processes(self):
-        # get a new board state
-        self.board_state = self.gen_board_state()
 
         slices = []
         # set the slices for each agent
-        for i in range(self.num_qsteps / 2):
-            for j in range(self.num_qsteps / 2):
+        for i in range(int(self.num_qsteps / 2)):
+            for j in range(int(self.num_qsteps / 2)):
                 slices.append(self.board_state[i*self.step_size : self.step_size+i*self.step_size, j*self.step_size : self.step_size+j*self.step_size])
 
         # reset processes list
         self.processes = []
         # initializing the training processes
-        for i in range(len(self.q_tables)):
+        for i in range(1):#len(self.agents)):
             # append new process to processes list and start them
-            self.processes.append(mp.Process(target = train_agent, args = (self.agents[i], slices[i])))
+            self.processes.append(mp.Process(target = self.train_agent, args = (self.agents[i], slices[i])))
+            self.processes[i].start()
 
         # wait for the processes to finish
         for proc in self.processes:

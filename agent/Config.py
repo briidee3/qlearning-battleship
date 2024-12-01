@@ -52,7 +52,7 @@ load_q_table = False
 # local directory in which the Q-table partitions are stored
 qt_save_dir = "q_table"
 # number of partitions to separate the q-table into
-num_q_parts = 4
+num_q_parts = 1
 # Represent the maximums for each q-table partition
 part_cutoffs = []
 for i in range(num_q_parts):

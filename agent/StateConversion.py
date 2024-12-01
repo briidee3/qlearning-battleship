@@ -18,25 +18,19 @@ from . import Config
 
 
 # Convert state to number
-# TODO:
-#   - make an alternative version that doesn't use num_cells, but rather the length of the state.
-#       using num_cells for now for ease of use of the above parameters.
-def state_to_num(state = np.zeros((Config.num_cells), dtype = Config.cell_state_dtype), cell_count = Config.num_cells):
+#   essentially just base conversion (see the blurb above "num_to_state" for more info)
+def state_to_num(state = np.zeros((Config.num_cells), dtype = Config.cell_state_dtype), base = Config.num_cell_states, cell_count = Config.num_cells):
     # used to keep track of the number that will be acquired throughout this function
     num = 0
 
     # there are n cells, so go through for each of them
-    for i in range(1, cell_count + 1):
-        cur_cell_state = state[i - 1]
-
+    for i in range(0, cell_count):
         # if the state of the current cell is 0, continue to the next iteration of the loop (i.e. skip below).
-        if not cur_cell_state:
+        if not state[i]:
             continue
 
-        # raise the current cell's state to the power of it's location in the board state, add to num.
-        #   by "current cell's state", i mean the m - 1th prime where m is the state of the cell (which can have state ranging from 0 thru m - 1)
-        num += (Config.primes_list[cur_cell_state - 1] ** i)
-        print(num)
+        # otherwise, add the current power times the cell's state
+        num += int(state[i]) * (base ** i)
     
     return num
 
@@ -48,7 +42,7 @@ def state_to_num(state = np.zeros((Config.num_cells), dtype = Config.cell_state_
 def num_to_state(num = int(3), base = Config.num_cell_states, cell_count = Config.num_cells):
     # return 0 when num is empty
     if num == 0:
-        return [0]
+        return np.zeros(cell_count, dtype = Config.cell_state_dtype)
     
     # initialize the list to store non-empty cells (and empty cells in between)
     digits = []
@@ -57,7 +51,7 @@ def num_to_state(num = int(3), base = Config.num_cell_states, cell_count = Confi
     while num >= 1:
         # get the next base <num_cell_states> digit to be output
         digits.append(int(num % base))
-        num /= base
+        num = int(num / base)
     
     # put the new base <num_cell_states> number into an array to represent the board state
     return np.array(([0 for _ in range(cell_count - 1)] + digits[::-1])[-cell_count:][::-1], dtype = Config.cell_state_dtype)
