@@ -182,8 +182,8 @@ class QAgent:
         print("\t" + self.name + ": Average ratio of hits/misses:\t" + str(avg_hit_miss))
         print("\t" + self.name + ": Average new Q-value:\t" + str(avg_q))
         print("\t" + self.name + ": Average reward:\t" + str(avg_reward) + "\n")
-        with open(os.path.join(Config.qt_save_dir, self.name + "_LR" + self.learn_rate + "_DF" + self.discount_factor + "_DR" + self.decay_rate + ".txt"), "w") as save:
-            save.write(map(str, [avg_hit_miss, avg_q, avg_reward]))
+        with open(os.path.join(Config.qt_save_dir, self.name + "_LR" + str(self.learn_rate) + "_DF" + str(self.discount_factor) + "_DR" + str(self.decay_rate) + ".txt"), "w") as save:
+            save.write(":".join(map(str, [avg_hit_miss, avg_q, avg_reward])))
             save.close()
         
     

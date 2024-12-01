@@ -10,16 +10,16 @@ import os
 ## HYPERPARAMETERS
 
 # number of epochs to be trained
-epochs = 5000
+epochs = 200000
 # learn rate of the agent
-learn_rate = 0.8
+learn_rate = 0.05
 # discount factor, denoting importance of future rewards
-discount_factor = 0.5
+discount_factor = 0.1
 
 # exploration parameters for use with epsilon-greedy policy
 epsilon_max = 1.0
 epsilon_min = 0.05
-decay_rate = 0.0005
+decay_rate = 0.0008
 
 
 
@@ -49,7 +49,7 @@ shot_states = {
 
 # set the weights for hits and misses
 hit_weight = 0.05        # hit
-miss_weight = -0.008        # miss
+miss_weight = -0.01        # miss
 
 # used to denote whether or not to load an existing Q-table from local storage
 load_q_table = False

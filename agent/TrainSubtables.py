@@ -48,8 +48,10 @@ class TrainSubtables:
         agent.set_enemy_board(np.ndarray.flatten(table_slice))
         # train the agent
         agent.train()
+        # evaluate agent
+        agent.eval()
         # once done, save the agent locally
-        agent.save_q_table()
+        #agent.save_q_table()
 
 
     # Run through the process of spinning up processes and training agents
@@ -64,11 +66,45 @@ class TrainSubtables:
         # reset processes list
         self.processes = []
         # initializing the training processes
-        for i in range(len(self.agents)):
+        for i in range(1):#len(self.agents)):
             # append new process to processes list and start them
             self.processes.append(mp.Process(target = self.train_agent, args = (self.agents[i], slices[i])))
             self.processes[i].start()
 
         # wait for the processes to finish
         for proc in self.processes:
+            proc.join()
+
+
+    # to be used for identification of optimal hyperparameters for QAgents
+    def optimize(self):
+        # processes list
+        processes = []
+        # agents list
+        agents = []
+        # board slice to use for testing
+        board_slice = self.board_state[0:4, 0:4]
+
+        # define range for each var
+        range_learn_rate = [0.05, 0.95]
+        range_discount_factor = [0.05, 0.95]
+        range_decay_rate = [0.00001, 0.001]
+
+        # go through and run trials for each var
+        #learn rate and discount factor
+        for i in np.arange(0.05, 1, 0.05):
+            agents.append(qa.QAgent(name = "qt_lr_" + str(i), learn_rate = i))
+            agents.append(qa.QAgent(name = "qt_df_" + str(i), discount_factor = i))
+        
+        #decay rate
+        for i in np.arange(0.00001, 0.0011, 0.00001):
+            agents.append(qa.QAgent(name = "qt_dr_" + str(i), decay_rate = i))
+        
+        # add them all to individual processes
+        for i in range(len(agents)):
+            processes.append(mp.Process(target = self.train_agent, args = (agents[i], board_slice)))
+            processes[i].start()
+
+        # wait for processes to finish
+        for proc in processes:
             proc.join()

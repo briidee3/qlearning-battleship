@@ -2,8 +2,11 @@
 # Class for use running the training processes 
 
 import numpy as np
+import multiprocessing as mp
+
 import agent.Config as cfg
 import agent.TrainSubtables as ts
+import agent.QAgent as qa
 from game import create_random_opponent
 
 
