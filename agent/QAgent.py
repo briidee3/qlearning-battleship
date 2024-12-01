@@ -117,7 +117,7 @@ class QAgent:
 
     # calculate the new q value for a given state/action pair (as inferred by given coords for an action)
     def calc_new_q_val(self):
-        return (1 - self.learn_rate) * (self.q_table[self.state_num][self.cur_action]) + self.learn_rate * self.calc_q_val_bellman_at_cell()
+        return (1 - self.learn_rate) * (self.q_table[self.cur_state_num][self.cur_action]) + self.learn_rate * self.calc_q_val_bellman_at_cell()
 
 
     # calculate q-value using Bellman's equation
@@ -125,14 +125,14 @@ class QAgent:
     # returns q-value for given state-action pair, as gathered by a given coordinate
     #   (i.e. the discounted estimate optimal q-value of next state)
     def calc_q_val_bellman_at_cell(self):
-        return self.calc_reward_at_cell(self.cur_action) + self.discount_factor * self.q_max
+        return self.calc_reward_at_cell() + self.discount_factor * self.q_max
 
 
     # calculate the immediate reward for taking an action (shot) at a given state
     # (represents "R(s, a)" in Bellman's equation
     def calc_reward_at_cell(self):
         # if it's a hit, reward the agent
-        if self.enemy_board[self.cur_actions[self.cur_action]] != 0:
+        if self.enemy_board[self.cur_action] != 0:
             return Config.hit_weight
         # if it's a miss, punish the agent
         return Config.miss_weight
@@ -173,10 +173,7 @@ class QAgent:
         # generate new boards until all ship cells haven't already been hit
         # select and set a new state randomly out of the set of possible states for the current enemy board
         init_state = sc.state_to_num(random.choice(self.possible_boards))
-        print(init_state)
         self.set_state(init_state)
-        print(self.cur_state)
-        print(self.cur_state_num)
         # count the number of hits and shots already taken (shots taken is equivalent to turn count)
         self.count_board()
 
@@ -209,10 +206,10 @@ class QAgent:
         else:
             self.choose_action_greedy()
 
-        # update q-max
+        # update q-max of next step
         self.q_max = np.max(self.q_table[self.next_state_num])
         # update the q-table
-        self.q_table[self.cur_state_num][self.cur_action]
+        self.q_table[self.cur_state_num][self.cur_action] += self.calc_new_q_val()
 
         # set the state of the board to the next state
         self.set_state(self.next_state_num)
@@ -223,7 +220,7 @@ class QAgent:
         # pick a random num from 0 to 1, and check if it's larger than epsilon. if so, exploit
         if np.random.rand() > self.epsilon:
             # set cur_action to the first location of q_max
-            self.cur_action = self.cur_actions[int(np.where(self.q_table[self.cur_state] == self.q_max)[0][0])]
+            self.cur_action = int(np.where(self.q_table[self.cur_state_num] == self.q_max)[0][0])
         # otherwise, explore
         else:
             # pick a random action from the set of available actions
@@ -256,15 +253,12 @@ class QAgent:
             if self.cur_state[i] == 0:
                 self.cur_actions.append(i)
 
-        print(self.cur_state)
-        print(self.cur_actions)
-    
 
     # get the next state during a game
     def calc_next_state(self):
         # initialize the next state to the current state
         self.next_state = np.copy(self.cur_state)
-        print(self.cur_action)
+
         # if it's a hit, set the next state accordingly
         if self.enemy_board[self.cur_action] == 1:
             self.next_state[self.cur_action] = 1
@@ -274,7 +268,6 @@ class QAgent:
             self.next_state[self.cur_action] = 2
         # set the next state number
         self.next_state_num = sc.state_to_num(self.next_state)
-        print(self.next_state_num)
 
 
     # generate the set of possible board states given the current enemy board
@@ -301,24 +294,24 @@ class QAgent:
     # Initialize a new Q-table based on the configuration options set in Config.py
     def new_q_table(self):
         # get the partition cutoffs given the current config
-        part_cutoffs = Config.part_cutoffs
+        #part_cutoffs = Config.part_cutoffs
         # store the new Q-table as a multidimensional list
-        return np.ndarray((Config.primes_list[Config.num_cell_states - 2] ** Config.num_cells, Config.num_cells), dtype = Config.q_value_dtype)
+        return np.zeros(((Config.num_cell_states ** Config.num_cells), Config.num_cells), dtype = Config.q_value_dtype)
 
 
     # Save the current version of the q-table to local storage device
-    def save_q_table(self, name = "qt"):
+    def save_q_table(self):
         # notify the user of the process in the console
         print("\n" + self.name + ": Saving the Q-table to local disk...")
         # check to see if files already exist in the save directory
-        if os.path.isfile(Config.qt_save_dir, name + "_table.npy"):
+        if os.path.isfile(os.path.join(Config.qt_save_dir, self.name + "_table.npy")):
             # Notify the user if there already exists the pertaining files, and give them the option to
             #   cancel the saving process to prevent overwriting an existing table
             save_check = '1'
             while save_check:
                 if save_check != '1':
                     print("\n" + self.name + ": Please input \"y\" (yes) or (default) \"n\" (no).")
-                save_check = input("WARNING: Files already exist in the designated partition storage directory.\nContinue anyways? (y/N)")
+                save_check = input("WARNING: Files already exist in the designated partition storage directory. Continue anyways? (y/N)")
                 if save_check[0] == 'y' or save_check[0] == 'Y':
                     print("Saving Q-table...")
                     break
@@ -329,7 +322,7 @@ class QAgent:
         
         try:
             # Save it as a numpy file
-            np.save(name + "_table.npy", self.q_table, allow_pickle = False)
+            np.save(os.path.join(Config.qt_save_dir, self.name + "_table.npy"), self.q_table, allow_pickle = False)
             print("\n" + self.name + ": Q-table saved to local disk.\n")
         except Exception as e:
             print(self.name + ": QuadrantAgent.py: save_q_table(): EXCEPTION saving Q-table:\n\t%s" % str(e))
@@ -338,11 +331,9 @@ class QAgent:
                 
 
     # Load the Q-table from storage
-    def load_q_table(self, name = "qt"):
-        # check if partitions exist within the save dierctory
-        qt_isparts = self.parts_exist(name)
+    def load_q_table(self):
         # handle if q-table partitions not found
-        if not os.path.isfile(Config.qt_save_dir, name + "_table.npy"):
+        if not os.path.isfile(os.path.join(Config.qt_save_dir, self.name + "_table.npy")):
             print(self.name + ": Q-Table file(s) not found. Using fallback (initialize new empty Q-Table)...")
             self.q_table = self.new_q_table()
             return False
@@ -350,11 +341,11 @@ class QAgent:
         try:
             print(self.name + ": Q-Table file(s) found. Loading...")
             # Load it from the numpy files
-            np.load(name + "_table.npy", self.q_table, allow_pickle = False)
+            self.q_table = np.load(os.path.join(Config.qt_save_dir, self.name + "_table.npy"), allow_pickle = False)
             print("\n" + self.name + ": Q-table loaded from local disk.\n")
         except Exception as e:
             print(self.name + ": QuadrantAgent.py: load_q_table(): EXCEPTION loading Q-table:\n\t%s" % str(e))
-        
+            return False
         return True
 
 

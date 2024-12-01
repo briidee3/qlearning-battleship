@@ -3,19 +3,23 @@
 #   in playing the Battleship board game.
 
 
+from pathlib import Path
+import os
+
+
 ## HYPERPARAMETERS
 
 # number of epochs to be trained
-epochs = 1000
+epochs = 5000
 # learn rate of the agent
 learn_rate = 0.8
 # discount factor, denoting importance of future rewards
-discount_factor = 0.98
+discount_factor = 0.7
 
 # exploration parameters for use with epsilon-greedy policy
 epsilon_max = 1.0
-epsilon_min = 0.05
-decay_rate = 0.001
+epsilon_min = 0.2
+decay_rate = 0.00002
 
 
 
@@ -44,13 +48,13 @@ shot_states = {
         }
 
 # set the weights for hits and misses
-hit_weight = 6        # hit
-miss_weight = -1        # miss
+hit_weight = 0.05        # hit
+miss_weight = -0.005        # miss
 
 # used to denote whether or not to load an existing Q-table from local storage
 load_q_table = False
 # local directory in which the Q-table partitions are stored
-qt_save_dir = "q_table"
+qt_save_dir = os.path.join(Path(__file__).parent, "q_table")
 # number of partitions to separate the q-table into
 num_q_parts = 1
 # Represent the maximums for each q-table partition
