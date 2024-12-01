@@ -11,7 +11,7 @@ def create_random_opponent(board_size, ships):
     direction = placement[2]
     if random_opponent.place_ship_without_printing(row, col, ships[ship_num], direction) == 6:
       ship_num = ship_num + 1
-  random_opponent.print_board()
+  #random_opponent.print_board()
   return random_opponent
 
 class game:
