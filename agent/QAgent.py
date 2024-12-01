@@ -42,6 +42,8 @@ class QAgent:
         self.decay_rate = decay_rate    # decay constant 
         # the current value of epsilon
         self.epsilon = epsilon_max
+        # save the initial value of epsilon
+        self.epsilon_init = epsilon_max
 
 
         ## Q-table initialization
@@ -89,7 +91,18 @@ class QAgent:
         # represent the next state
         self.next_state = self.cur_state
         # represent the current Q-max for the next state
-        self.q_max = np.float16(0)
+        self.q_max = np.float32(0)
+
+
+        ## Evaluation data
+        # keep track of the average ratio of hits to misses
+        self.hit_count = 0
+        self.miss_count = 0
+        # keep track of the average new q value
+        self.sum_new_q = np.float64(0)
+        self.q_count = 0
+        # keep track of avg reward
+        self.sum_rewards = 0
 
     
     # Initialize the Q-table
@@ -117,7 +130,13 @@ class QAgent:
 
     # calculate the new q value for a given state/action pair (as inferred by given coords for an action)
     def calc_new_q_val(self):
-        return (1 - self.learn_rate) * (self.q_table[self.cur_state_num][self.cur_action]) + self.learn_rate * self.calc_q_val_bellman_at_cell()
+        # calculate next q value, clipping the bellman portion to help stave off divergence
+        q = self.q_table[self.cur_state_num][self.cur_action] + self.learn_rate * (self.calc_q_val_bellman_at_cell() - self.q_table[self.cur_state_num][self.cur_action])
+        # iterate evaluation data
+        self.q_count += 1
+        self.sum_new_q += np.float64(q)
+
+        return q
 
 
     # calculate q-value using Bellman's equation
@@ -133,19 +152,39 @@ class QAgent:
     def calc_reward_at_cell(self):
         # if it's a hit, reward the agent
         if self.enemy_board[self.cur_action] != 0:
+            self.hit_count += 1
+            self.sum_rewards += Config.hit_weight
             return Config.hit_weight
         # if it's a miss, punish the agent
+        self.miss_count += 1
+        self.sum_rewards += Config.miss_weight
         return Config.miss_weight
 
     
     # Train the Q-table for the given number of epochs on the given data
     def train(self):
         print("\n" + self.name + ": Beginning training process for Q-table %s." % self.name)
+        # reset epsilon
+        self.epsilon = self.epsilon_init
         # go through the process for the given number of epochs
         for cur_epoch in range(self.epochs):
             #print("\tTable:\t%s\tEpoch:\t%d" % (self.name, cur_epoch))
             self.do_epoch(cur_epoch)
         print("\n" + self.name + ": Done training Q-table %s!" % self.name)
+    
+
+    # Evaluate the Q-table after training
+    def eval(self):
+        avg_hit_miss = (self.hit_count / self.miss_count)
+        avg_q = (self.sum_new_q / self.q_count)
+        avg_reward = (self.sum_rewards / (self.hit_count + self.miss_count))
+        print("\n" + self.name + ": Evaluation:\n")
+        print("\t" + self.name + ": Average ratio of hits/misses:\t" + str(avg_hit_miss))
+        print("\t" + self.name + ": Average new Q-value:\t" + str(avg_q))
+        print("\t" + self.name + ": Average reward:\t" + str(avg_reward) + "\n")
+        with open(os.path.join(Config.qt_save_dir, self.name + "_LR" + self.learn_rate + "_DF" + self.discount_factor + "_DR" + self.decay_rate + ".txt"), "w") as save:
+            save.write(map(str, [avg_hit_miss, avg_q, avg_reward]))
+            save.close()
         
     
     # run through an entire epoch
@@ -209,7 +248,7 @@ class QAgent:
         # update q-max of next step
         self.q_max = np.max(self.q_table[self.next_state_num])
         # update the q-table
-        self.q_table[self.cur_state_num][self.cur_action] += self.calc_new_q_val()
+        self.q_table[self.cur_state_num][self.cur_action] = self.calc_new_q_val()
 
         # set the state of the board to the next state
         self.set_state(state_num = self.next_state_num)
