@@ -10,20 +10,33 @@ import os
 ## HYPERPARAMETERS
 
 # number of epochs to be trained
-epochs = 200000
+epochs = 160000
 # learn rate of the agent
 learn_rate = 0.05
 # discount factor, denoting importance of future rewards
 discount_factor = 0.1
 
 # exploration parameters for use with epsilon-greedy policy
-epsilon_max = 1.0
+#epsilon_max = 1.0
+epsilon_max = 0.5
 epsilon_min = 0.05
 decay_rate = 0.0008
 
 
 
 ## OPTIONS
+
+# number of instances of TrainSubtables processes to be run
+num_ts_subprocs = 4
+# number of boards each TrainSubtables instance should run through
+num_ts_iter = 3
+# chunk size for multiprocessing pools
+chunk_size = 1
+
+# save statistics (used for optimizing hyperparams)
+save_stats = False
+# whether or not to mute QAgent
+mute_qa = False
 
 # for the use case in mind, the 4x4 board has 16 cells
 num_cells = 4**2          # aka "n"

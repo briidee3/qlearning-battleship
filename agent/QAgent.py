@@ -10,8 +10,11 @@
 # TODO: Go through and do proper exception handling
 
 
+from pathlib import Path
+import multiprocessing as mp
 import numpy as np
 import os
+import sys
 import random
 
 from . import Config
@@ -23,7 +26,11 @@ class QAgent:
 
     def __init__(self, enemy_board = np.array((Config.num_cells), dtype = "int8"),
         discount_factor = Config.discount_factor, learn_rate = Config.learn_rate, epochs = Config.epochs, name = "qt",
-        epsilon_max = Config.epsilon_max, epsilon_min = Config.epsilon_min, decay_rate = Config.decay_rate):
+        epsilon_max = Config.epsilon_max, epsilon_min = Config.epsilon_min, decay_rate = Config.decay_rate, memmap = False):
+
+        # check if output should be muted, and if so, mute it
+        if Config.mute_qa:
+            sys.stdout = open(os.devnull, 'w')
 
         ## Hyperparameters
         # discount factor (0<discount_factor<=1), importance of future rewards
@@ -47,10 +54,28 @@ class QAgent:
 
 
         ## Q-table initialization
-        self.q_table = [[] for _ in range(Config.num_q_parts)]#np.zeros((Config.num_q_parts, (Config.num_cell_states ** Config.num_cells / Config.num_q_parts), Config.num_cells), dtype = "int8")
-        # Load each partition of the Q-table into their respective portions of the Q-table
-        if Config.load_q_table:
-            self.load_q_table()
+        # file name for storage of q-table
+        self.filename = os.path.join(Config.qt_save_dir, name + "_table.np")
+        # for use denoting whether or not to use memory mapping for q-table
+        self.memmap = memmap
+        # if not, create/load normally
+        self.q_table = []
+        if not self.memmap:
+            self.q_table = [[] for _ in range(Config.num_q_parts)]#np.zeros((Config.num_q_parts, (Config.num_cell_states ** Config.num_cells / Config.num_q_parts), Config.num_cells), dtype = "int8")
+            # Load each partition of the Q-table into their respective portions of the Q-table
+            if Config.load_q_table:
+                self.load_q_table()
+        # otherwise, check to see if memmap file already exists. if not, make it
+        elif not os.path.isfile(self.filename):
+            self.q_table = np.memmap(self.filename, dtype = Config.q_value_dtype, mode = "w+", shape = ((Config.num_cell_states ** Config.num_cells), Config.num_cells))
+            # immediately write to disk for access from other processes
+            self.q_table.flush()
+            del self.q_table
+            # reopen in read/write mode
+            self.q_table = self.memmap_load_qt()
+        # otherwise, load the memory mapped file pertaining to the q-table name from storage
+        else:
+            self.q_table = self.memmap_load_qt()
 
 
         ## Game state
@@ -107,13 +132,17 @@ class QAgent:
     
     # Initialize the Q-table
     def init(self):
-        self.q_table = self.new_q_table()
+        # check if using memory map
+        if not self.mmap:
+            self.q_table = self.new_q_table()
+        else:
+            self.q_table = self.mmap_load_qt()
 
     
     # set enemy board helper function (for use training on multiple different board states in the same session)
     def set_enemy_board(self, new_enemy_board = np.zeros((16), dtype = Config.cell_state_dtype)):
         print("\n" + self.name + ": Setting new enemy board...")
-        self.enemy_board = new_enemy_board
+        self.enemy_board = np.copy(new_enemy_board)
         print(self.name + ": Enemy board set.\n")
         print(new_enemy_board)
         # generate all possible board states for the board
@@ -171,7 +200,7 @@ class QAgent:
             #print("\tTable:\t%s\tEpoch:\t%d" % (self.name, cur_epoch))
             self.do_epoch(cur_epoch)
         print("\n" + self.name + ": Done training Q-table %s!" % self.name)
-    
+
 
     # Evaluate the Q-table after training
     def eval(self):
@@ -182,9 +211,10 @@ class QAgent:
         print("\t" + self.name + ": Average ratio of hits/misses:\t" + str(avg_hit_miss))
         print("\t" + self.name + ": Average new Q-value:\t" + str(avg_q))
         print("\t" + self.name + ": Average reward:\t" + str(avg_reward) + "\n")
-        with open(os.path.join(Config.qt_save_dir, self.name + "_LR" + str(self.learn_rate) + "_DF" + str(self.discount_factor) + "_DR" + str(self.decay_rate) + ".txt"), "w") as save:
-            save.write(":".join(map(str, [avg_hit_miss, avg_q, avg_reward])))
-            save.close()
+        if Config.save_stats:
+            with open(os.path.join(Config.qt_save_dir, self.name + "_LR" + str(self.learn_rate) + "_DF" + str(self.discount_factor) + "_DR" + str(self.decay_rate) + ".txt"), "w") as save:
+                save.write(":".join(map(str, [avg_hit_miss, avg_q, avg_reward])))
+                save.close()
         
     
     # run through an entire epoch
@@ -259,7 +289,7 @@ class QAgent:
         # pick a random num from 0 to 1, and check if it's larger than epsilon. if so, exploit
         if np.random.rand() > self.epsilon:
             # set cur_action to the first location of q_max (which at this point in runtime should be q_max of current state)
-            self.cur_action = int(np.where(self.q_table[self.cur_state_num] == np.max(self.q_table[self.cur_state_num]))[0][0])
+            self.cur_action = np.argmax(self.q_table[self.cur_state_num])
         # otherwise, explore
         else:
             # pick a random action from the set of available actions
@@ -329,6 +359,16 @@ class QAgent:
         
         print(self.name + ": Done generating possible enemy boards.\n")
 
+    
+    # manually set the q-table
+    def set_q_table(self, q_table):
+        self.q_table = q_table
+
+    
+    # get the q table
+    def get_q_table(self):
+        return self.q_table
+
 
     # Initialize a new Q-table based on the configuration options set in Config.py
     def new_q_table(self):
@@ -387,6 +427,16 @@ class QAgent:
             return False
         return True
 
+
+    # save q tableusing memory map
+    def memmap_save_qt(self, lock = mp.Lock()):
+        with lock:
+            self.q_table.flush()
+    
+
+    # load q table using memory map
+    def memmap_load_qt(self):
+        return np.memmap(self.filename, dtype = Config.q_value_dtype, mode = "r+", shape = ((Config.num_cell_states ** Config.num_cells), Config.num_cells))
 
 
 
