@@ -14,12 +14,12 @@ epochs = 5000
 # learn rate of the agent
 learn_rate = 0.8
 # discount factor, denoting importance of future rewards
-discount_factor = 0.7
+discount_factor = 0.5
 
 # exploration parameters for use with epsilon-greedy policy
 epsilon_max = 1.0
-epsilon_min = 0.2
-decay_rate = 0.00002
+epsilon_min = 0.05
+decay_rate = 0.0005
 
 
 
@@ -37,7 +37,7 @@ step_size = 2
 primes_list = [2, 3]
 # data type of the states being used
 cell_state_dtype = "int8"
-q_value_dtype = "float16"
+q_value_dtype = "float32"
 
 # define shot board states as integers representing one of three states
 #   defined outside of class since is invariant
@@ -49,7 +49,7 @@ shot_states = {
 
 # set the weights for hits and misses
 hit_weight = 0.05        # hit
-miss_weight = -0.005        # miss
+miss_weight = -0.008        # miss
 
 # used to denote whether or not to load an existing Q-table from local storage
 load_q_table = False

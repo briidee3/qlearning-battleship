@@ -143,7 +143,7 @@ class QAgent:
         print("\n" + self.name + ": Beginning training process for Q-table %s." % self.name)
         # go through the process for the given number of epochs
         for cur_epoch in range(self.epochs):
-            print("\tTable:\t%s\tEpoch:\t%d" % (self.name, cur_epoch))
+            #print("\tTable:\t%s\tEpoch:\t%d" % (self.name, cur_epoch))
             self.do_epoch(cur_epoch)
         print("\n" + self.name + ": Done training Q-table %s!" % self.name)
         
@@ -158,7 +158,7 @@ class QAgent:
             # check if in win state
             if self.num_hits == self.init_num_ships:
                 # if so, done with epoch, break from loop
-                print("\t\t" + self.name + ": Current epoch done.")
+                #print("\t\t" + self.name + ": Current epoch done.")
                 break
 
             # take next step
@@ -212,15 +212,15 @@ class QAgent:
         self.q_table[self.cur_state_num][self.cur_action] += self.calc_new_q_val()
 
         # set the state of the board to the next state
-        self.set_state(self.next_state_num)
+        self.set_state(state_num = self.next_state_num)
 
 
     # determine the next action to use via an epsilon-greedy policy
     def choose_action_epsilon_greedy(self):
         # pick a random num from 0 to 1, and check if it's larger than epsilon. if so, exploit
         if np.random.rand() > self.epsilon:
-            # set cur_action to the first location of q_max
-            self.cur_action = int(np.where(self.q_table[self.cur_state_num] == self.q_max)[0][0])
+            # set cur_action to the first location of q_max (which at this point in runtime should be q_max of current state)
+            self.cur_action = int(np.where(self.q_table[self.cur_state_num] == np.max(self.q_table[self.cur_state_num]))[0][0])
         # otherwise, explore
         else:
             # pick a random action from the set of available actions

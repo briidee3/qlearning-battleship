@@ -64,7 +64,7 @@ class TrainSubtables:
         # reset processes list
         self.processes = []
         # initializing the training processes
-        for i in range(1):#len(self.agents)):
+        for i in range(len(self.agents)):
             # append new process to processes list and start them
             self.processes.append(mp.Process(target = self.train_agent, args = (self.agents[i], slices[i])))
             self.processes[i].start()
