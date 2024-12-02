@@ -50,6 +50,7 @@ def play_game():
 
         # get the index for the move of the agent player
         targets[0] = table_player.step()
+        targets[0] = int(targets[0][0] * 8 + targets[0][1])
 
         # update both boards accordingly
         for i in range(2):
