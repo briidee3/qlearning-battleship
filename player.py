@@ -1,7 +1,10 @@
 from ship import ship
 import random
+import agent.TablePlayer as tp
 class player:
   def __init__(self, board_size, type = "human"):
+    if type == "agent":
+      self.table_player = tp.TablePlayer()
     self.type = type
     self.enemy_score = 0
     self.board_size = board_size
@@ -156,8 +159,5 @@ class player:
       col = random.randint(0,self.board_size-1)
       return [row, col]
     elif self.type == "agent":
-      # take input from agent
-      row = 0
-      col = 0
-      return [row, col]
+      return self.table_player.step()
 
