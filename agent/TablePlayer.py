@@ -48,6 +48,9 @@ class TablePlayer:
     def init_agents(self):
         for i in range(self.q_steps):
             self.q_tables.append(qa.QAgent())
+        #temp = self.q_tables[1]
+        #self.q_tables[1] = self.q_tables[2]
+        #self.q_tables[2] = temp
 
 
     # Load the stored Q-tables
@@ -60,9 +63,9 @@ class TablePlayer:
     
 
     # Set the macro board state for the agent to use
-    def set_enemy_board_state(self, board):
+    def set_enemy_board_state(self, board = np.zeros((8,8), dtype = Config.cell_state_dtype)):
         self.enemy_macro_board = board
-
+        print(board)
         # reset 
         self.enemy_slices = []
         self.agent_slices = []
@@ -71,7 +74,8 @@ class TablePlayer:
             for j in range(int(self.q_steps / 2)):
                 self.agent_slices.append(np.zeros((16), dtype = Config.cell_state_dtype))
                 self.enemy_slices.append(np.ndarray.flatten(self.enemy_macro_board[i*self.step_size : self.step_size+i*self.step_size, j*self.step_size : self.step_size+j*self.step_size]))
-
+        print(self.enemy_slices)
+        #exit()
 
     
     # Get the max qs for each of the board quadrants
@@ -82,7 +86,10 @@ class TablePlayer:
         # go thru each agent
         for i in range(self.q_steps):
             # get num for current state
+            #print(self.agent_slices[i])
             cur_state_num = sc.state_to_num(self.agent_slices[i])
+            #print(self.q_tables[i][cur_state_num])
+            #print(i)
             # add index of max q
             self.max_q_actions.append(np.argmax(self.q_tables[i][cur_state_num]))
             # add max q
@@ -92,24 +99,32 @@ class TablePlayer:
         q_max = np.argmax(self.max_q_vals)
         # if max is 0, pick one of them at random
         if q_max == 0:
-            q_max = np.random.randint(16)
-
+            q_max = np.random.randint(4)
+            self.max_q_actions = [np.random.randint(0, 15)] * 4
+        
+        print(self.max_q_actions)
+        print(self.max_q_vals)
+        print()
         return q_max
 
     
     # get the next board state with regards to the given q-table, action, current state indices
     def get_next_board_state(self, agent = 0, action = 0):
         # adjust to taste
-        action -= 1
+        #action -= 1
         # check if it's a hit
         if self.enemy_slices[agent][action] == 1:
             # set the corresponding location on the agent's board view to a hit
+            #print(self.agent_slices[agent])
             self.agent_slices[agent][action] = 1
+            #print(self.agent_slices[agent])
             self.num_hits += 1
         # otherwise it's a miss
         else:
             # set the location to a miss
+           # print("Action: ", self.agent_slices[agent][action])
             self.agent_slices[agent][action] = 2
+            #print("Agent slice:", self.agent_slices[agent])
             self.num_shots += 1
 
 
@@ -122,14 +137,18 @@ class TablePlayer:
 
         # return the current action for use in evaluation
         action = self.max_q_actions[cur_agent]
+        print("Agent, action:", cur_agent, action)
+        print("Board:\n%s\n%s\n%s\n%s" % (str(self.agent_slices[0].reshape(4,4)), str(self.agent_slices[1].reshape(4,4)), str(self.agent_slices[2].reshape(4,4)), str(self.agent_slices[3].reshape(4,4))))
         coords = []
         match cur_agent:
-            case 1:
-                coords = [int(action / 4) + 4, (action % 4)]
             case 2:
+                coords = [int(action / 4) + 4, (action % 4)]
+            case 1:
                 coords = [int(action / 4), (action % 4) + 4]
             case 3:
                 coords = [int(action / 4) + 4, (action % 4) + 4]
+            case 0:
+                coords = [int(action / 4), (action % 4)]
             case _:
                 coords = [int(action / 4), (action % 4)]
 
