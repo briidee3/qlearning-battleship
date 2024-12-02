@@ -1,5 +1,7 @@
 from player import player
 from ship import ship
+import agent.Config as cfg
+import numpy as np
 
 def create_random_opponent(board_size, ships):
   random_opponent = player(board_size, 'random')
@@ -58,6 +60,18 @@ class game:
         ship = ship + 1
 
   def shooting_phase(self): #asks for player 1's guesses and player 2's guesses back and forth until someone wins
+    if self.player1.type == 'agent':
+      enemy_board = np.ndarray.flatten(np.array(self.player2.get_board()))
+      enemy_board[enemy_board == 'S'] = 1
+      enemy_board[enemy_board == '~'] = 0
+      enemy_board = np.array(enemy_board.reshape((self.board_size, self.board_size)), dtype=cfg.cell_state_dtype)
+      self.player1.table_player.set_enemy_board_state(enemy_board)
+    if self.player2.type == 'agent':
+      enemy_board = np.ndarray.flatten(np.array(self.player1.get_board()))
+      enemy_board[enemy_board == 'S'] = 1
+      enemy_board[enemy_board == '~'] = 0
+      enemy_board = np.array(enemy_board.reshape((self.board_size, self.board_size)), dtype=cfg.cell_state_dtype)
+      self.player1.table_player.set_enemy_board_state(enemy_board)
     winner = 0
     win_condition = 0
     for i in range(self.num_ships):
