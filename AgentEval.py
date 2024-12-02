@@ -54,6 +54,7 @@ def play_game():
         # update both boards accordingly
         for i in range(2):
             # check if there's a ship at the location taken to shoot at
+            print(enemy_boards)
             if enemy_boards[i][targets[i]] == 1:
                 # iterate score for this player
                 scores[i] += 1

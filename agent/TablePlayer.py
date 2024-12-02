@@ -114,13 +114,19 @@ class TablePlayer:
 
 
     # take a step
-    def step(self):
+    def step(self, coords = True):
         # get the index of the agent with the max q for the current board state
         cur_agent = self.get_q_max()
         # get the next micro-board state for that agent, update that quadrant of the board
         self.get_next_board_state(cur_agent, self.max_q_actions[cur_agent])
 
         # return the current action for use in evaluation
-        return self.max_q_actions[cur_agent]
+        action = self.max_q_actions[cur_agent]
+        coords = [int(action / 4) + cur_agent * 4, (action % 4) + cur_agent * 4]
+
+        if coords:
+            return coords
+        else:
+            return coords[0] * 8 + coords[1]
         
         
