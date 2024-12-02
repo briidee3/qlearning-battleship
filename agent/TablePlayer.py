@@ -122,11 +122,21 @@ class TablePlayer:
 
         # return the current action for use in evaluation
         action = self.max_q_actions[cur_agent]
-        coords = [int(action / 4) + cur_agent * 4, (action % 4) + cur_agent * 4]
+        coords = []
+        match cur_agent:
+            case 1:
+                coords = [int(action / 4) + 4, (action % 4)]
+            case 2:
+                coords = [int(action / 4), (action % 4) + 4]
+            case 3:
+                coords = [int(action / 4) + 4, (action % 4) + 4]
+            case _:
+                coords = [int(action / 4), (action % 4)]
 
         if coords:
             return coords
         else:
             return coords[0] * 8 + coords[1]
+
         
         
