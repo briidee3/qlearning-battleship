@@ -49,13 +49,12 @@ def play_game():
             targets[1] = random.randint(0, 63)
 
         # get the index for the move of the agent player
-        targets[0] = table_player.step(coords = False)
+        targets[0] = table_player.step()
+        targets[0] = int(targets[0][0] * 8 + targets[0][1])
 
         # update both boards accordingly
         for i in range(2):
-            print(targets)
             # check if there's a ship at the location taken to shoot at
-            print(enemy_boards[i][targets[i]])
             if enemy_boards[i][targets[i]] == 1:
                 # iterate score for this player
                 scores[i] += 1

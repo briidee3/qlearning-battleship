@@ -133,10 +133,7 @@ class TablePlayer:
             case _:
                 coords = [int(action / 4), (action % 4)]
 
-        if coords:
-            return coords
-        else:
-            return coords[0] * 8 + coords[1]
+        return coords
 
         
         
