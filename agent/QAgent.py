@@ -10,8 +10,11 @@
 # TODO: Go through and do proper exception handling
 
 
+from pathlib import Path
+import multiprocessing as mp
 import numpy as np
 import os
+import sys
 import random
 
 from . import Config
@@ -23,7 +26,11 @@ class QAgent:
 
     def __init__(self, enemy_board = np.array((Config.num_cells), dtype = "int8"),
         discount_factor = Config.discount_factor, learn_rate = Config.learn_rate, epochs = Config.epochs, name = "qt",
-        epsilon_max = Config.epsilon_max, epsilon_min = Config.epsilon_min, decay_rate = Config.decay_rate):
+        epsilon_max = Config.epsilon_max, epsilon_min = Config.epsilon_min, decay_rate = Config.decay_rate, memmap = False):
+
+        # check if output should be muted, and if so, mute it
+        if Config.mute_qa:
+            sys.stdout = open(os.devnull, 'w')
 
         ## Hyperparameters
         # discount factor (0<discount_factor<=1), importance of future rewards
@@ -42,13 +49,33 @@ class QAgent:
         self.decay_rate = decay_rate    # decay constant 
         # the current value of epsilon
         self.epsilon = epsilon_max
+        # save the initial value of epsilon
+        self.epsilon_init = epsilon_max
 
 
         ## Q-table initialization
-        self.q_table = [[] for _ in range(Config.num_q_parts)]#np.zeros((Config.num_q_parts, (Config.num_cell_states ** Config.num_cells / Config.num_q_parts), Config.num_cells), dtype = "int8")
-        # Load each partition of the Q-table into their respective portions of the Q-table
-        if Config.load_q_table:
-            self.load_q_table()
+        # file name for storage of q-table
+        self.filename = os.path.join(Config.qt_save_dir, name + "_table.np")
+        # for use denoting whether or not to use memory mapping for q-table
+        self.memmap = memmap
+        # if not, create/load normally
+        self.q_table = []
+        if not self.memmap:
+            self.q_table = [[] for _ in range(Config.num_q_parts)]#np.zeros((Config.num_q_parts, (Config.num_cell_states ** Config.num_cells / Config.num_q_parts), Config.num_cells), dtype = "int8")
+            # Load each partition of the Q-table into their respective portions of the Q-table
+            if Config.load_q_table:
+                self.load_q_table()
+        # otherwise, check to see if memmap file already exists. if not, make it
+        elif not os.path.isfile(self.filename):
+            self.q_table = np.memmap(self.filename, dtype = Config.q_value_dtype, mode = "w+", shape = ((Config.num_cell_states ** Config.num_cells), Config.num_cells))
+            # immediately write to disk for access from other processes
+            self.q_table.flush()
+            del self.q_table
+            # reopen in read/write mode
+            self.q_table = self.memmap_load_qt()
+        # otherwise, load the memory mapped file pertaining to the q-table name from storage
+        else:
+            self.q_table = self.memmap_load_qt()
 
 
         ## Game state
@@ -68,9 +95,9 @@ class QAgent:
         self.num_shots = 0
         # number cells occupied by enemy ships
         self.init_num_ships = 0
-        for cell in enemy_board:
-            if cell:
-                self.init_num_ships += 1
+        #for cell in enemy_board:
+        #    if cell:
+        #        self.init_num_ships += 1
         # since the Q-max depends on the number of cells and the weight of hits, it's set to hit_weight * num_cells
         #   this is the hypothetical maximum, however it is unacheivable in many scenarios, i.e. when not every single cell
         #   is going to be a hit
@@ -89,17 +116,63 @@ class QAgent:
         # represent the next state
         self.next_state = self.cur_state
         # represent the current Q-max for the next state
-        self.q_max = Config.q_value_dtype(0)
+        self.q_max = np.float32(0)
+
+
+        ## Evaluation data
+        # keep track of the average ratio of hits to misses
+        self.hit_count = 0
+        self.miss_count = 0
+        # keep track of the average new q value
+        self.sum_new_q = np.float64(0)
+        self.q_count = 0
+        # keep track of avg reward
+        self.sum_rewards = 0
 
     
     # Initialize the Q-table
     def init(self):
-        self.q_table = self.new_q_table()
+        # check if using memory map
+        if not self.mmap:
+            self.q_table = self.new_q_table()
+        else:
+            self.q_table = self.mmap_load_qt()
+
+    
+    # set enemy board helper function (for use training on multiple different board states in the same session)
+    def set_enemy_board(self, new_enemy_board = np.zeros((16), dtype = Config.cell_state_dtype)):
+        #print("\n" + self.name + ": Setting new enemy board...")
+        self.enemy_board = np.copy(new_enemy_board)
+        #print(self.name + ": Enemy board set.\n")
+        #print(new_enemy_board)
+        # generate all possible board states for the board
+        if Config.mode == "train":
+            self.gen_possible_boards()
+        
+        # reset init_num_ships
+        self.init_num_ships = 0
+        # count the number of cells with a ship
+        for i in new_enemy_board:
+            if i:
+                self.init_num_ships += 1
+        #print(self.init_num_ships)
+
+    
+    # Get the action that the agent should use during evaluation for the given board state (greedy)
+    #def get_action(self):
+        # get the max q for the current board state
+    #    cur_max_q = self.q_table[sc.state_to_num(self.enemy_board)]
 
 
     # calculate the new q value for a given state/action pair (as inferred by given coords for an action)
     def calc_new_q_val(self):
-        return (1 - self.learn_rate) * (self.q_table[self.state_num][self.cur_action]) + self.learn_rate * self.calc_q_val_bellman_at_cell()
+        # calculate next q value, clipping the bellman portion to help stave off divergence
+        q = self.q_table[self.cur_state_num][self.cur_action] + self.learn_rate * (self.calc_q_val_bellman_at_cell() - self.q_table[self.cur_state_num][self.cur_action])
+        # iterate evaluation data
+        self.q_count += 1
+        self.sum_new_q += np.float64(q)
+
+        return q
 
 
     # calculate q-value using Bellman's equation
@@ -107,41 +180,61 @@ class QAgent:
     # returns q-value for given state-action pair, as gathered by a given coordinate
     #   (i.e. the discounted estimate optimal q-value of next state)
     def calc_q_val_bellman_at_cell(self):
-        return self.calc_reward_at_cell(self.cur_action) + self.discount_factor * self.q_max
+        return self.calc_reward_at_cell() + self.discount_factor * self.q_max
 
 
     # calculate the immediate reward for taking an action (shot) at a given state
     # (represents "R(s, a)" in Bellman's equation
     def calc_reward_at_cell(self):
         # if it's a hit, reward the agent
-        if self.enemy_board[self.cur_actions[self.cur_action]]:
-            self.num_hits += 1
+        if self.enemy_board[self.cur_action] != 0:
+            self.hit_count += 1
+            self.sum_rewards += Config.hit_weight
             return Config.hit_weight
         # if it's a miss, punish the agent
+        self.miss_count += 1
+        self.sum_rewards += Config.miss_weight
         return Config.miss_weight
 
     
     # Train the Q-table for the given number of epochs on the given data
     def train(self):
-        print("\nBeginning training process for Q-table %s." % self.name)
+        print("\n" + self.name + ": Beginning training process for Q-table %s." % self.name)
+        # reset epsilon
+        self.epsilon = self.epsilon_init
         # go through the process for the given number of epochs
         for cur_epoch in range(self.epochs):
-            print("\tTable:\t%s\tEpoch:\t%d" % (self.name, cur_epoch))
-            self.do_epoch()
-        print("\nDone training Q-table %s!" % self.name)
+            #print("\tTable:\t%s\tEpoch:\t%d" % (self.name, cur_epoch))
+            self.do_epoch(cur_epoch)
+        print("\n" + self.name + ": Done training Q-table %s!" % self.name)
+
+
+    # Evaluate the Q-table after training
+    def eval(self):
+        avg_hit_miss = (self.hit_count / self.miss_count)
+        avg_q = (self.sum_new_q / self.q_count)
+        avg_reward = (self.sum_rewards / (self.hit_count + self.miss_count))
+        print("\n" + self.name + ": Evaluation:\n")
+        print("\t" + self.name + ": Average ratio of hits/misses:\t" + str(avg_hit_miss))
+        print("\t" + self.name + ": Average new Q-value:\t" + str(avg_q))
+        print("\t" + self.name + ": Average reward:\t" + str(avg_reward) + "\n")
+        if Config.save_stats:
+            with open(os.path.join(Config.qt_save_dir, self.name + "_LR" + str(self.learn_rate) + "_DF" + str(self.discount_factor) + "_DR" + str(self.decay_rate) + ".txt"), "w") as save:
+                save.write(":".join(map(str, [avg_hit_miss, avg_q, avg_reward])))
+                save.close()
         
     
     # run through an entire epoch
-    def do_epoch(self):
+    def do_epoch(self, cur_epoch):
         # set up the new epoch, starting at a randomly set board state
-        self.new_epoch()
+        self.new_epoch(cur_epoch)
 
         # go through until the game is won
         for i in range(np.shape(self.cur_state)[0]):    # max num of turns is length of board
             # check if in win state
-            if self.num_hits == self.num_ships:
+            if self.num_hits == self.init_num_ships:
                 # if so, done with epoch, break from loop
-                print("\t\tCurrent epoch done.")
+                #print("\t\t" + self.name + ": Current epoch done.")
                 break
 
             # take next step
@@ -149,13 +242,14 @@ class QAgent:
 
 
     # set things up for a new epoch
-    def new_epoch(self):
+    def new_epoch(self, cur_epoch):
         # update epsilon
         self.update_epsilon(cur_epoch)
         
+        # generate new boards until all ship cells haven't already been hit
         # select and set a new state randomly out of the set of possible states for the current enemy board
-        self.set_state(sc.state_to_num(random.choice(self.possible_boards)))
-
+        init_state = sc.state_to_num(random.choice(self.possible_boards))
+        self.set_state(init_state)
         # count the number of hits and shots already taken (shots taken is equivalent to turn count)
         self.count_board()
 
@@ -188,36 +282,37 @@ class QAgent:
         else:
             self.choose_action_greedy()
 
-        # update the q-table
-        self.q_table[self.cur_state_num][self.cur_action]
-
-        # update q-max
+        # update q-max of next step
         self.q_max = np.max(self.q_table[self.next_state_num])
+        # update the q-table
+        self.q_table[self.cur_state_num][self.cur_action] = self.calc_new_q_val()
+
         # set the state of the board to the next state
-        self.set_state(self.next_state_num)
+        self.set_state(state_num = self.next_state_num)
 
 
     # determine the next action to use via an epsilon-greedy policy
     def choose_action_epsilon_greedy(self):
         # pick a random num from 0 to 1, and check if it's larger than epsilon. if so, exploit
         if np.random.rand() > self.epsilon:
-            self.cur_action = self.q_max
+            # set cur_action to the first location of q_max (which at this point in runtime should be q_max of current state)
+            self.cur_action = np.argmax(self.q_table[state_num])
         # otherwise, explore
         else:
             # pick a random action from the set of available actions
             self.cur_action = random.choice(self.cur_actions)
-        self.update_action()
+        self.calc_next_state()
 
     
     # determine the next action via a greedy policy (for use in evaluation)
     def choose_action_greedy(self):
-        self.cur_action = self.q_max
-        self.update_action()
-    
-
-    # update the agent's state given the choice of current action
-    def update_action(self):
+        self.cur_action = np.argmax(self.q_table[state_num])
         self.calc_next_state()
+
+    
+    # get the max of the q table at the current state
+    #def get_q_max(self, state_num = self.cur_state_num):
+    #    return np.argmax(self.q_table[state_num])
     
 
     # set the state of the board to the given state
@@ -236,69 +331,141 @@ class QAgent:
         # go through each of the cells of the current state
         for i in range(np.shape(self.cur_state)[0]):
             # if the cell is empty, then it's a possible action; add its index to the set of possible actions
-            if not self.cur_state[i]:
+            if self.cur_state[i] == 0:
                 self.cur_actions.append(i)
-    
+
 
     # get the next state during a game
     def calc_next_state(self):
         # initialize the next state to the current state
         self.next_state = np.copy(self.cur_state)
-        # using the current action chosen, figure out what the next state would be based on the enemy board
-        index = self.cur_actions[self.cur_action]
+
         # if it's a hit, set the next state accordingly
-        if self.enemy_board[index]:
-            self.next_state[index] = 1
+        if self.enemy_board[self.cur_action] == 1:
+            self.next_state[self.cur_action] = 1
+            self.num_hits += 1
         # otherwise it's a miss, set accordingly
         else:
-            self.next_state[index] = 2
+            self.next_state[self.cur_action] = 2
         # set the next state number
         self.next_state_num = sc.state_to_num(self.next_state)
 
-    
-    # set enemy board helper function (for use training on multiple different board states in the same session)
-    def set_enemy_board(self, new_enemy_board = np.zeros((16), dtype = Config.cell_state_dtype)):
-        print("\nSetting new enemy board...")
-        self.enemy_board = new_enemy_board
-        print("Enemy board set.\n")
-        # generate all possible board states for the board
-        self.gen_possible_boards()
-        
-        # reset init_num_ships
-        self.init_num_ships = 0
-        # count the number of cells with a ship
-        for i in new_enemy_board:
-            if i:
-                self.init_num_ships += 1
 
 
 
     # generate the set of possible board states given the current enemy board
     def gen_possible_boards(self):
-        print("\nGenerating possible boards for the given enemy board...")
+        print("\n" + self.name + ": Generating possible boards for the given enemy board...")
         # reset possible_boards
         self.possible_boards = []
         # go through the range of possible states, which correspond to all possible combinations of shots taken, which for a 4x4 board is 2^16
         for i in range(2**Config.num_cells):
             # represent the number i as a base 2 board state
             cur_shots_state = sc.num_to_state(i, 2, Config.num_cells) * 2   # * 2 to say they're all misses prior to checking
-            
             # for any 0s in the current state, replace the corresponding cell in self.enemy_board to 0
-            for i in range(np.shape(cur_shots_state)[0]):
+            for i in range(np.shape(self.enemy_board)[0]):
                 # check if any of the shots fired are hits. if so, reflect it in the board state.
-                if self.enemy_board[i]:
+                if self.enemy_board[i] != 0 and cur_shots_state[i] == 2:
                     cur_shots_state[i] = 1
             
             # add the current state to the list of currently possible board states
             self.possible_boards.append(cur_shots_state)
         
-        print("Done generating possible enemy boards.\n")
+        print(self.name + ": Done generating possible enemy boards.\n")
+
+    
+    # manually set the q-table
+    def set_q_table(self, q_table):
+        self.q_table = q_table
+
+    
+    # get the q table
+    def get_q_table(self):
+        return self.q_table
+
+
+    # Initialize a new Q-table based on the configuration options set in Config.py
+    def new_q_table(self):
+        # get the partition cutoffs given the current config
+        #part_cutoffs = Config.part_cutoffs
+        # store the new Q-table as a multidimensional list
+        return np.zeros(((Config.num_cell_states ** Config.num_cells), Config.num_cells), dtype = Config.q_value_dtype)
+
+
+    # Save the current version of the q-table to local storage device
+    def save_q_table(self):
+        # notify the user of the process in the console
+        print("\n" + self.name + ": Saving the Q-table to local disk...")
+        # check to see if files already exist in the save directory
+        if os.path.isfile(os.path.join(Config.qt_save_dir, self.name + "_table.npy")):
+            # Notify the user if there already exists the pertaining files, and give them the option to
+            #   cancel the saving process to prevent overwriting an existing table
+            save_check = '1'
+            while save_check:
+                if save_check != '1':
+                    print("\n" + self.name + ": Please input \"y\" (yes) or (default) \"n\" (no).")
+                save_check = input("WARNING: Files already exist in the designated partition storage directory. Continue anyways? (y/N)")
+                if save_check[0] == 'y' or save_check[0] == 'Y':
+                    print("Saving Q-table...")
+                    break
+            # handle if the user would like to cancel the saving process
+            if save_check[0] != 'y':
+                print(self.name + ": Saving process canceled.")
+                return False
+        
+        try:
+            # Save it as a numpy file
+            np.save(os.path.join(Config.qt_save_dir, self.name + "_table.npy"), self.q_table, allow_pickle = False)
+            print("\n" + self.name + ": Q-table saved to local disk.\n")
+        except Exception as e:
+            print(self.name + ": QuadrantAgent.py: save_q_table(): EXCEPTION saving Q-table:\n\t%s" % str(e))
+        
+        return True
+                
+
+    # Load the Q-table from storage
+    def load_q_table(self):
+        # handle if q-table partitions not found
+        if not os.path.isfile(os.path.join(Config.qt_save_dir, self.name + "_table.npy")):
+            print(self.name + ": Q-Table file(s) not found. Using fallback (initialize new empty Q-Table)...")
+            self.q_table = self.new_q_table()
+            return False
+        
+        try:
+            print(self.name + ": Q-Table file(s) found. Loading...")
+            # Load it from the numpy files
+            self.q_table = np.load(os.path.join(Config.qt_save_dir, self.name + "_table.npy"), allow_pickle = False)
+            print("\n" + self.name + ": Q-table loaded from local disk.\n")
+        except Exception as e:
+            print(self.name + ": QuadrantAgent.py: load_q_table(): EXCEPTION loading Q-table:\n\t%s" % str(e))
+            return False
+        return True
+
+
+    # save q tableusing memory map
+    def memmap_save_qt(self, lock = mp.Lock()):
+        with lock:
+            self.q_table.flush()
+    
+
+    # load q table using memory map
+    def memmap_load_qt(self):
+        return np.memmap(self.filename, dtype = Config.q_value_dtype, mode = "r+", shape = ((Config.num_cell_states ** Config.num_cells), Config.num_cells))
+
+
+
+
+
+
+
+    ## UNUSED: (temporarily kept here for reference)
+"""
                 
  
     # Testing a new idea for lowering number of actions per state dynamically
     #   (with this version, the previously used q-table partitioning functions are no longer functional without modification)
-    def new_q_table(self):
-        print("\nInitializing new Q-table...")
+    def old_new_new_q_table(self):
+        print("\n" + self.name + ": Initializing new Q-table...")
         # store the new Q-table as a multidimensional list, where each element contains all states pertaining to a given turn
         new_table = [[] for _ in range(Config.num_cells)]
 
@@ -320,97 +487,15 @@ class QAgent:
         #print("Lengths of table:")
         #for turn in range(len(new_table)):
         #    print("\tTurn %d:\t%d" % (turn, len(new_table[turn])))
-        print("New Q-table initialized.\n")
+        print(self.name + ": New Q-table initialized.\n")
 
         # return the new table as a list of ndarrays of shape(partition_length, num_cells)
-        return [np.array(new_table[i], dtype = Config.q_value_dtype) for i in range(Config.num_q_parts)]
-
-
-
-    # Save the current version of the q-table to local storage device
-    def save_q_table(self, name = "qt"):
-        # notify the user of the process in the console
-        print("\nSaving the Q-table to local disk...")
-        # check to see if files already exist in the save directory
-        if os.path.isfile(Config.qt_save_dir, name + "_table.npy"):
-            # Notify the user if there already exists the pertaining files, and give them the option to
-            #   cancel the saving process to prevent overwriting an existing table
-            save_check = '1'
-            while save_check:
-                if save_check != '1':
-                    print("\nPlease input \"y\" (yes) or (default) \"n\" (no).")
-                save_check = input("WARNING: Files already exist in the designated partition storage directory.\nContinue anyways? (y/N)")
-                if save_check[0] == 'y' or save_check[0] == 'Y':
-                    print("Saving Q-table...")
-                    break
-            # handle if the user would like to cancel the saving process
-            if save_check[0] != 'y':
-                print("Saving process canceled.")
-                return False
-        
-        try:
-            # Save it as a numpy file
-            np.save(name + "_table.npy", self.q_table, allow_pickle = False)
-            print("\nQ-table saved to local disk.\n")
-        except Exception as e:
-            print("QuadrantAgent.py: save_q_table(): EXCEPTION saving Q-table:\n\t%s" % str(e))
-        
-        return True
-                
-
-    # Load the Q-table from storage
-    def load_q_table(self, name = "qt"):
-        # check if partitions exist within the save dierctory
-        qt_isparts = self.parts_exist(name)
-        # handle if q-table partitions not found
-        if not os.path.isfile(Config.qt_save_dir, name + "_table.npy"):
-            print("Q-Table file(s) not found. Using fallback (initialize new empty Q-Table)...")
-            self.q_table = self.new_q_table()
-            return False
-        
-        try:
-            print("Q-Table file(s) found. Loading...")
-            # Load it from the numpy files
-            np.load(name + "_table.npy", self.q_table, allow_pickle = False)
-            print("\nQ-table loaded from local disk.\n")
-        except Exception as e:
-            print("QuadrantAgent.py: load_q_table(): EXCEPTION loading Q-table:\n\t%s" % str(e))
-        
-        return True
+        return [np.array(new_table[i], dtype = Config.q_value_dtype) for i in range(len(new_table))]
 
 
 
 
-
-
-
-
-    ## UNUSED: (temporarily kept here for reference)
-"""
-    # Initialize a new Q-table based on the configuration options set in Config.py
-    def old_new_q_table(self):
-        # get the partition cutoffs given the current config
-        part_cutoffs = Config.part_cutoffs
-        # store the new Q-table as a multidimensional list
-        new_table = [[] for _ in range(Config.num_q_parts)]
-
-        # go through for each part of the Q-table
-        for cur_part in range(Config.num_q_parts):
-            # get the range of states (in number form) to be used in the current partition
-            cur_range = range(part_cutoffs[0])
-            # if not the first partition, range is end of prev partition to end of current
-            if cur_part != 0:
-                cur_range = range(part_cutoffs[cur_part - 1], part_cutoffs[cur_part])
-
-            # go through all states in current partition
-            for cur_state in cur_range:
-                # create a NxN board of int8s to represent the q values for the current board state
-                #   where N = width (or height, since it's a square) of the board
-                #   (represented as a 1D array of length N^2)
-                new_table[cur_part].append(np.zeros((Config.num_cells), dtype = Config.cell_state_dtype))
-        
-        # return the new table as a list of ndarrays of shape(partition_length, num_cells)
-        return [np.array(new_table[i], dtype = Config.cell_state_dtype) for i in range(Config.num_q_parts)]
+    
 
     
     # convert action to board coordinate (in consideration of how action will be related to the number of empty cells in a board state)

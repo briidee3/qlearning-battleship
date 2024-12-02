@@ -3,23 +3,47 @@
 #   in playing the Battleship board game.
 
 
+from pathlib import Path
+import os
+
+
 ## HYPERPARAMETERS
 
 # number of epochs to be trained
-epochs = 1000
+epochs = 10000
 # learn rate of the agent
-learn_rate = 0.8
+learn_rate = 0.05
 # discount factor, denoting importance of future rewards
-discount_factor = 0.98
+discount_factor = 0.1
 
 # exploration parameters for use with epsilon-greedy policy
-epsilon_max = 1.0
+#epsilon_max = 1.0
+epsilon_max = 0.5
 epsilon_min = 0.05
-decay_rate = 0.001
+decay_rate = 0.0008
 
 
 
 ## OPTIONS
+
+# mode of operation for the QAgents (train or eval/play)
+mode = "eval"
+# set epsilon and learn_rate to 0 to only exploit current knowledgess during eval
+if mode == "eval":
+    epsilon = 0
+    learn_rate = 0
+
+# number of instances of TrainSubtables processes to be run
+num_ts_subprocs = 2
+# number of boards each TrainSubtables instance should run through
+num_ts_iter = 1
+# chunk size for multiprocessing pools
+chunk_size = 1
+
+# save statistics (used for optimizing hyperparams)
+save_stats = False
+# whether or not to mute QAgent
+mute_qa = False
 
 # for the use case in mind, the 4x4 board has 16 cells
 num_cells = 4**2          # aka "n"
@@ -33,7 +57,7 @@ step_size = 2
 primes_list = [2, 3]
 # data type of the states being used
 cell_state_dtype = "int8"
-q_value_dtype = "float16"
+q_value_dtype = "float32"
 
 # define shot board states as integers representing one of three states
 #   defined outside of class since is invariant
@@ -44,15 +68,15 @@ shot_states = {
         }
 
 # set the weights for hits and misses
-hit_weight = 6        # hit
-miss_weight = -1        # miss
+hit_weight = 0.05        # hit
+miss_weight = -0.01        # miss
 
 # used to denote whether or not to load an existing Q-table from local storage
 load_q_table = False
 # local directory in which the Q-table partitions are stored
-qt_save_dir = "q_table"
+qt_save_dir = os.path.join(Path(__file__).parent, "q_table")
 # number of partitions to separate the q-table into
-num_q_parts = 4
+num_q_parts = 1
 # Represent the maximums for each q-table partition
 part_cutoffs = []
 for i in range(num_q_parts):
