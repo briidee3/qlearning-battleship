@@ -10,7 +10,7 @@ import os
 ## HYPERPARAMETERS
 
 # number of epochs to be trained
-epochs = 160000
+epochs = 10000
 # learn rate of the agent
 learn_rate = 0.05
 # discount factor, denoting importance of future rewards
@@ -26,10 +26,17 @@ decay_rate = 0.0008
 
 ## OPTIONS
 
+# mode of operation for the QAgents (train or eval/play)
+mode = "eval"
+# set epsilon and learn_rate to 0 to only exploit current knowledgess during eval
+if mode == "eval":
+    epsilon = 0
+    learn_rate = 0
+
 # number of instances of TrainSubtables processes to be run
-num_ts_subprocs = 4
+num_ts_subprocs = 2
 # number of boards each TrainSubtables instance should run through
-num_ts_iter = 3
+num_ts_iter = 1
 # chunk size for multiprocessing pools
 chunk_size = 1
 

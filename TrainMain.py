@@ -66,7 +66,9 @@ def ts_init(ts, id_ = 1):
 if __name__ == "__main__":
     #try:
         # set the method for spawning processes
-    mp.set_start_method('fork', force = True)
+    # set method for spawning process if not windows
+    if os.name != "nt":
+        mp.set_start_method('fork', force = True)
     #except RuntimeError:
     #    pass
 

@@ -141,12 +141,13 @@ class QAgent:
     
     # set enemy board helper function (for use training on multiple different board states in the same session)
     def set_enemy_board(self, new_enemy_board = np.zeros((16), dtype = Config.cell_state_dtype)):
-        print("\n" + self.name + ": Setting new enemy board...")
+        #print("\n" + self.name + ": Setting new enemy board...")
         self.enemy_board = np.copy(new_enemy_board)
-        print(self.name + ": Enemy board set.\n")
-        print(new_enemy_board)
+        #print(self.name + ": Enemy board set.\n")
+        #print(new_enemy_board)
         # generate all possible board states for the board
-        self.gen_possible_boards()
+        if Config.mode == "train":
+            self.gen_possible_boards()
         
         # reset init_num_ships
         self.init_num_ships = 0
@@ -154,7 +155,13 @@ class QAgent:
         for i in new_enemy_board:
             if i:
                 self.init_num_ships += 1
-        print(self.init_num_ships)
+        #print(self.init_num_ships)
+
+    
+    # Get the action that the agent should use during evaluation for the given board state (greedy)
+    #def get_action(self):
+        # get the max q for the current board state
+    #    cur_max_q = self.q_table[sc.state_to_num(self.enemy_board)]
 
 
     # calculate the new q value for a given state/action pair (as inferred by given coords for an action)
@@ -289,7 +296,7 @@ class QAgent:
         # pick a random num from 0 to 1, and check if it's larger than epsilon. if so, exploit
         if np.random.rand() > self.epsilon:
             # set cur_action to the first location of q_max (which at this point in runtime should be q_max of current state)
-            self.cur_action = np.argmax(self.q_table[self.cur_state_num])
+            self.cur_action = np.argmax(self.q_table[state_num])
         # otherwise, explore
         else:
             # pick a random action from the set of available actions
@@ -299,8 +306,13 @@ class QAgent:
     
     # determine the next action via a greedy policy (for use in evaluation)
     def choose_action_greedy(self):
-        self.cur_action = np.where(self.q_table[self.cur_state] == self.q_max)
+        self.cur_action = np.argmax(self.q_table[state_num])
         self.calc_next_state()
+
+    
+    # get the max of the q table at the current state
+    #def get_q_max(self, state_num = self.cur_state_num):
+    #    return np.argmax(self.q_table[state_num])
     
 
     # set the state of the board to the given state
@@ -337,6 +349,8 @@ class QAgent:
             self.next_state[self.cur_action] = 2
         # set the next state number
         self.next_state_num = sc.state_to_num(self.next_state)
+
+
 
 
     # generate the set of possible board states given the current enemy board
