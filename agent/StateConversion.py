@@ -3,15 +3,6 @@
 #   In the use case this script was made for, there are n = 25 cells of m = 3 possible states.
 #   This script has been designed with more general use in mind.
 
-# TODO:
-# - [ ] add a hash table mapping function to avoid use of m**n / 2 numbers that will never be used
-#       (i.e. to cut the q-table size down to 2/3 what it would be otherwise)
-# NOTE: This is only intended for use in an implementation in which the agent is expected to output
-#   a boolean action. The cells may represent more than 2 states, but this is essentially creating and
-#   using a boolean decision tree, since either a shot is taken or it is not (i.e. application to Battleship board game).
-# NOTE: This version of StateConversion.py takes the sum of primes representing the cells on the board for
-#   each possible cell state and pairs them using a deterministic pairing function. This one may or may not be
-#   utilized in the final version of the program.
 
 import numpy as np
 from . import Config

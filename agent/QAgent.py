@@ -155,13 +155,6 @@ class QAgent:
         for i in new_enemy_board:
             if i:
                 self.init_num_ships += 1
-        #print(self.init_num_ships)
-
-    
-    # Get the action that the agent should use during evaluation for the given board state (greedy)
-    #def get_action(self):
-        # get the max q for the current board state
-    #    cur_max_q = self.q_table[sc.state_to_num(self.enemy_board)]
 
 
     # calculate the new q value for a given state/action pair (as inferred by given coords for an action)
@@ -308,11 +301,6 @@ class QAgent:
     def choose_action_greedy(self):
         self.cur_action = np.argmax(self.q_table[state_num])
         self.calc_next_state()
-
-    
-    # get the max of the q table at the current state
-    #def get_q_max(self, state_num = self.cur_state_num):
-    #    return np.argmax(self.q_table[state_num])
     
 
     # set the state of the board to the given state
