@@ -24,14 +24,17 @@ class game:
     battleship = ship(4)
     cruiser = ship(3)
     submarine = ship(3)
-    destroyer = ship(2)
-    self.ships = [destroyer, submarine, cruiser, battleship, carrier]
+    destroyer2 = ship(2)
+    destroyer1 = ship(2)
+    self.ships = [destroyer1, destroyer2, submarine, cruiser, battleship, carrier]
     self.player1 = player(board_size, player1_type)
     self.player2 = player(board_size, player2_type)
 
   def start(self): #let the games begin
     self.place_phase()
-    print("Player", self.shooting_phase(),"wins!")
+    winner = self.shooting_phase()
+    print("Player", winner,"wins!")
+    return winner
 
   def place_phase(self): #asks for ship placements from player 1, then player 2
     print("Player 1 placing phase:")

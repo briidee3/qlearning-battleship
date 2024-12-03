@@ -43,7 +43,7 @@ class TablePlayer:
         self.num_shots = 0
         self.num_hits = 0
 
-    
+
     # initialize the q tables
     def init_agents(self):
         for i in range(self.q_steps):
@@ -60,13 +60,13 @@ class TablePlayer:
         # go through for each of the quadrants/files in "q_tables"
         for table in os.listdir(Config.qt_save_dir):
             self.q_tables.append(np.memmap(os.path.join(Config.qt_save_dir, table), dtype = Config.q_value_dtype, mode = "r+", shape = ((Config.num_cell_states ** Config.num_cells), Config.num_cells)))
-    
+
 
     # Set the macro board state for the agent to use
     def set_enemy_board_state(self, board = np.zeros((8,8), dtype = Config.cell_state_dtype)):
         self.enemy_macro_board = board
         print(board)
-        # reset 
+        # reset
         self.enemy_slices = []
         self.agent_slices = []
         # set the slices for each agent
@@ -77,7 +77,7 @@ class TablePlayer:
         print(self.enemy_slices)
         #exit()
 
-    
+
     # Get the max qs for each of the board quadrants
     def get_q_max(self):
         # reset the lists
@@ -101,13 +101,13 @@ class TablePlayer:
         if q_max == 0:
             q_max = np.random.randint(4)
             self.max_q_actions = [np.random.randint(0, 15)] * 4
-        
+
         print(self.max_q_actions)
         print(self.max_q_vals)
         print()
         return q_max
 
-    
+
     # get the next board state with regards to the given q-table, action, current state indices
     def get_next_board_state(self, agent = 0, action = 0):
         # adjust to taste
@@ -154,5 +154,5 @@ class TablePlayer:
 
         return coords
 
-        
-        
+
+
