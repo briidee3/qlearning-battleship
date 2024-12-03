@@ -1,5 +1,8 @@
 from ship import ship
 import random
+
+random.seed(1337)
+
 class player:
   def __init__(self, board_size, type = "human"):
     self.type = type
