@@ -74,7 +74,7 @@ class TablePlayer:
             for j in range(int(self.q_steps / 2)):
                 self.agent_slices.append(np.zeros((16), dtype = Config.cell_state_dtype))
                 self.enemy_slices.append(np.ndarray.flatten(self.enemy_macro_board[i*self.step_size : self.step_size+i*self.step_size, j*self.step_size : self.step_size+j*self.step_size]))
-        print(self.enemy_slices)
+        #print(self.enemy_slices)
         #exit()
 
 
@@ -137,8 +137,8 @@ class TablePlayer:
 
         # return the current action for use in evaluation
         action = self.max_q_actions[cur_agent]
-        print("Agent, action:", cur_agent, action)
-        print("Board:\n%s\n%s\n%s\n%s" % (str(self.agent_slices[0].reshape(4,4)), str(self.agent_slices[1].reshape(4,4)), str(self.agent_slices[2].reshape(4,4)), str(self.agent_slices[3].reshape(4,4))))
+        #print("Agent, action:", cur_agent, action)
+        #print("Board:\n%s\n%s\n%s\n%s" % (str(self.agent_slices[0].reshape(4,4)), str(self.agent_slices[1].reshape(4,4)), str(self.agent_slices[2].reshape(4,4)), str(self.agent_slices[3].reshape(4,4))))
         coords = []
         match cur_agent:
             case 2:

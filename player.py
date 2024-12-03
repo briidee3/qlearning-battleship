@@ -1,6 +1,8 @@
 from ship import ship
 import random
 import agent.TablePlayer as tp
+random.seed(1337)
+
 class player:
   def __init__(self, board_size, type = "human"):
     if type == "agent":

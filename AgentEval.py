@@ -12,6 +12,8 @@ import agent.QAgent as qa
 import agent.TablePlayer as tp
 from game import create_random_opponent
 
+random.seed(865675876)
+np.random.seed(2198572194)
 
 ships = [2,2,3,3,4]
 num_ship_cells = np.sum(ships)
@@ -73,10 +75,10 @@ def play_game():
     # check if agent won
     if scores[0] > scores[1]:   #win
         statistics.append(1)
-        print("\tWinner: Q-Learning agent.")
+        #print("\tWinner: Q-Learning agent.")
     else:                       #loss
-        statistics.append(-1)
-        print("\tWinner: Monte Carlo agent")
+        statistics.append(0)
+        #print("\tWinner: Monte Carlo agent")
 
     # append the difference between scores to stats
     statistics.append(scores[0] - scores[1])
@@ -108,7 +110,7 @@ def evaluate(num_games = 1):
 
     # go through all of the games
     for i in range(num_games):
-        print("Game %d: " % i)
+        #print("Game %d: " % i)
         cur_stats = play_game()
         wins += cur_stats[0]
         score_sum += cur_stats[1]
@@ -120,4 +122,4 @@ def evaluate(num_games = 1):
 
 
 if __name__ == "__main__":
-    evaluate(1)
+    evaluate(100)
