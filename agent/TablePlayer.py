@@ -65,7 +65,7 @@ class TablePlayer:
     # Set the macro board state for the agent to use
     def set_enemy_board_state(self, board = np.zeros((8,8), dtype = Config.cell_state_dtype)):
         self.enemy_macro_board = board
-        print(board)
+        #print(board)
         # reset
         self.enemy_slices = []
         self.agent_slices = []
@@ -90,6 +90,7 @@ class TablePlayer:
             cur_state_num = sc.state_to_num(self.agent_slices[i])
             #print(self.q_tables[i][cur_state_num])
             #print(i)
+            #print(cur_state_num)
             # add index of max q
             self.max_q_actions.append(np.argmax(self.q_tables[i][cur_state_num]))
             # add max q
@@ -102,9 +103,9 @@ class TablePlayer:
             q_max = np.random.randint(4)
             self.max_q_actions = [np.random.randint(0, 15)] * 4
 
-        print(self.max_q_actions)
-        print(self.max_q_vals)
-        print()
+        #print(self.max_q_actions)
+        #print(self.max_q_vals)
+        #print()
         return q_max
 
 
@@ -137,9 +138,13 @@ class TablePlayer:
 
         # return the current action for use in evaluation
         action = self.max_q_actions[cur_agent]
-        #print("Agent, action:", cur_agent, action)
+        print("Agent, action:", cur_agent, action)
         #print("Board:\n%s\n%s\n%s\n%s" % (str(self.agent_slices[0].reshape(4,4)), str(self.agent_slices[1].reshape(4,4)), str(self.agent_slices[2].reshape(4,4)), str(self.agent_slices[3].reshape(4,4))))
         coords = []
+        #print(self.enemy_macro_board)
+        #print(self.agent_slices[cur_agent])
+        #print(self.enemy_slices[cur_agent])
+        #print(cur_agent)
         match cur_agent:
             case 2:
                 coords = [int(action / 4) + 4, (action % 4)]
@@ -153,6 +158,3 @@ class TablePlayer:
                 coords = [int(action / 4), (action % 4)]
 
         return coords
-
-
-
