@@ -71,11 +71,12 @@ class TrainSubtables:
 
 
     # Run through the process of spinning up processes and training agents
-    def run_training_processes(self, id_ = 1, iter_ = 1):
+    def run_training_processes(self, id_ = 1, iter_ = 1, rbg = False):
         print("TS %d subprocs %d initializing..." % (id_, iter_))
         
         # get new board
-        self.get_rbg_state()
+        if rbg:
+            self.get_rbg_state()
 
         slices = []
         # set the slices for each agent
@@ -130,7 +131,7 @@ class TrainSubtables:
         procs = []
         for i in range(self.num_iterations):
            # and each of them should be running the training of a full board
-            procs.append(mp.Process(target = self.run_training_processes, args = (id_, i)))
+            procs.append(mp.Process(target = self.run_training_processes, args = (id_, i, True)))
             procs[i].start()
         for proc in procs:
             proc.join()
