@@ -1,1 +1,4 @@
 agent/q_table/*
+.idea/
+__pycache__/
+agent/__pycache__/
