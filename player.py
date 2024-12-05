@@ -1,13 +1,15 @@
 from ship import ship
 import random
 import agent.TablePlayer as tp
-random.seed(1337)
+random.seed(6465)
 
 class player:
-  def __init__(self, board_size, type = "human"):
-    if type == "agent":
+  def __init__(self, board_size, type_ = "human"):
+    if type_ == "agent":
       self.table_player = tp.TablePlayer()
-    self.type = type
+    else:
+      self.table_player = None
+    self.type = type_
     self.enemy_score = 0
     self.board_size = board_size
     # Initialize a board with empty cells
@@ -146,10 +148,10 @@ class player:
       direction = random.choice(['H', 'V'])
       return [row, col, direction]
 
-  def shoot_input(self, guesses, enemy):
+  def shoot_input(self):#, guesses, enemy):
     if self.type == "human":
-      print("Player 1's guesses (2:unknown, 1:miss, 0:hit):")
-      enemy.print_guesses()
+      #print("Player 1's guesses (2:unknown, 1:miss, 0:hit):")
+      #enemy.print_guesses()
       print("Where does player 1 want to attack ?")
       print("Enter row 0 to", self.board_size - 1, ":")
       row = int(input())
@@ -161,5 +163,7 @@ class player:
       col = random.randint(0,self.board_size-1)
       return [row, col]
     elif self.type == "agent":
-      return self.table_player.step()
+      [row, col] = self.table_player.step()
+      print("Agent guess: [%d, %d]" % (row, col))
+      return [row, col]
 
