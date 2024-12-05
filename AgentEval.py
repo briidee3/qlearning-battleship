@@ -81,7 +81,7 @@ def play_game():
         #print("\tWinner: Monte Carlo agent")
 
     # append the difference between scores to stats
-    statistics.append(scores[0] - scores[1])
+    statistics.append(scores[0])# - scores[1])
     # add the number of turns taken to stats
     statistics.append(num_turns)
 
@@ -117,8 +117,8 @@ def evaluate(num_games = 1):
         turns_sum += cur_stats[2]
 
     # calculate and print out stats
-    print("Evaluation complete.\n\tWin/loss ratio: %d\n\tAverage score: %d\n\tAverage number of turns: %d" % 
-        ((wins), (score_sum / num_games), (turns_sum / num_games)))
+    print("Evaluation complete.\n\tWin/loss ratio: %d/%d\n\tAverage score: %d\n\tAverage number of turns: %d" % 
+        ((wins), (num_games - wins), (score_sum / num_games), (turns_sum / num_games)))
 
 
 if __name__ == "__main__":
