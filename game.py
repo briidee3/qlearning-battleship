@@ -3,6 +3,7 @@ from ship import ship
 import agent.Config as cfg
 import numpy as np
 
+
 def create_random_opponent(board_size, ships):
   random_opponent = player(board_size, 'random')
   ship_num = 0
@@ -18,6 +19,7 @@ def create_random_opponent(board_size, ships):
 
 class game:
   def __init__(self, board_size, num_ships, player1_type, player2_type):
+    np.random.seed(148721487)
     self.num_ships = num_ships
     self.board_size = board_size
     carrier = ship(5)
@@ -74,7 +76,7 @@ class game:
       enemy_board[enemy_board == 'S'] = 1
       enemy_board[enemy_board == '~'] = 0
       enemy_board = np.array(enemy_board.reshape((self.board_size, self.board_size)), dtype=cfg.cell_state_dtype)
-      self.player1.table_player.set_enemy_board_state(enemy_board)
+      self.player2.table_player.set_enemy_board_state(enemy_board)
     winner = 0
     win_condition = 0
     for i in range(self.num_ships):
@@ -82,7 +84,7 @@ class game:
     while winner == 0:
       success = False
       while not success:
-        position = self.player1.shoot_input(self.player2.enemy_guesses,self.player2)
+        position = self.player1.shoot_input()#self.player2.enemy_guesses,self.player2)
         row = position[0]
         col = position[1]
         if self.player2.attack(row, col) == -1:
@@ -96,7 +98,7 @@ class game:
             return 1 #returns the winner as player 1
       success = False
       while not success:
-        position = self.player2.shoot_input(self.player1.enemy_guesses,self.player1)
+        position = self.player2.shoot_input()#self.player1.enemy_guesses,self.player1)
         row = position[0]
         col = position[1]
         if self.player1.attack(row, col) == -1:
