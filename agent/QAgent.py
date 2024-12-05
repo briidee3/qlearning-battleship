@@ -288,19 +288,38 @@ class QAgent:
     def choose_action_epsilon_greedy(self):
         # pick a random num from 0 to 1, and check if it's larger than epsilon. if so, exploit
         if np.random.rand() > self.epsilon:
-            # set cur_action to the first location of q_max (which at this point in runtime should be q_max of current state)
-            self.cur_action = np.argmax(self.q_table[state_num])
+            # choose the next action using a greedy policy
+            self.choose_action_greedy(calc_next = False)
         # otherwise, explore
         else:
             # pick a random action from the set of available actions
-            self.cur_action = random.choice(self.cur_actions)
+            self.cur_action = np.random.choice(self.cur_actions)
         self.calc_next_state()
 
     
     # determine the next action via a greedy policy (for use in evaluation)
-    def choose_action_greedy(self):
-        self.cur_action = np.argmax(self.q_table[state_num])
-        self.calc_next_state()
+    def choose_action_greedy(self, calc_next = True):
+        try:
+            # set cur_action to the first location of q_max (which at this point in runtime should be q_max of current state)
+            action = np.argmax(self.q_table[self.cur_state_num])    # current action index in q-table
+            # get all locations of this particular q-value in the current state in the q-table
+            num_same_acts = np.where(self.q_table[self.cur_state_num] == self.q_table[self.cur_state_num][action])
+            # check if there's more than one action in the q-table with the current action.
+            #   if so, select one of them at random, ensuring the chosen action is one of the available in cur_actions.
+            if np.shape(num_same_acts)[1] != 1:
+                self.cur_action = np.random.choice(np.intersect1d(self.cur_actions, num_same_acts))
+            else:
+                # otherwise, set it to be the action found with argmax, checking to ensure the action is within cur_actions.
+                self.cur_action = np.intersect1d(self.cur_actions, num_same_acts)
+                # if the action is not within cur_actions, throw an exception denoting an issue with action selection
+                raise ValueError("No action selected.")
+        except Exception as e:
+            print("QAgent.py: choose_action_greedy(): EXCEPTION selecting action with greedy policy:\n\t%s" % str(e))
+
+
+        # check if it should calculate the next state (check added for use in choose_action_epsilon_greedy() func)
+        if calc_next:
+            self.calc_next_state()
     
 
     # set the state of the board to the given state
