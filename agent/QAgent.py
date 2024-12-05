@@ -312,7 +312,8 @@ class QAgent:
                 # otherwise, set it to be the action found with argmax, checking to ensure the action is within cur_actions.
                 self.cur_action = np.intersect1d(self.cur_actions, num_same_acts)
                 # if the action is not within cur_actions, throw an exception denoting an issue with action selection
-                raise ValueError("No action selected.")
+                if self.cur_action == None:
+                    raise ValueError("No action selected.")
         except Exception as e:
             print("QAgent.py: choose_action_greedy(): EXCEPTION selecting action with greedy policy:\n\t%s" % str(e))
 
