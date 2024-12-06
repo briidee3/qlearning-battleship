@@ -303,14 +303,14 @@ class QAgent:
             # set cur_action to the first location of q_max (which at this point in runtime should be q_max of current state)
             action = np.argmax(self.q_table[self.cur_state_num])    # current action index in q-table
             # get all locations of this particular q-value in the current state in the q-table
-            num_same_acts = np.where(self.q_table[self.cur_state_num] == self.q_table[self.cur_state_num][action])
+            cur_same_acts = np.where(self.q_table[self.cur_state_num] == self.q_table[self.cur_state_num][action])
             # check if there's more than one action in the q-table with the current action.
             #   if so, select one of them at random, ensuring the chosen action is one of the available in cur_actions.
-            if np.shape(num_same_acts)[1] != 1:
-                self.cur_action = np.random.choice(np.intersect1d(self.cur_actions, num_same_acts))
+            if np.shape(cur_same_acts)[1] != 1:
+                self.cur_action = np.random.choice(np.intersect1d(self.cur_actions, cur_same_acts))
             else:
                 # otherwise, set it to be the action found with argmax, checking to ensure the action is within cur_actions.
-                self.cur_action = np.intersect1d(self.cur_actions, num_same_acts)
+                self.cur_action = np.intersect1d(self.cur_actions, cur_same_acts)
                 # if the action is not within cur_actions, throw an exception denoting an issue with action selection
                 if self.cur_action == None:
                     raise ValueError("No action selected.")
