@@ -113,19 +113,22 @@ class TablePlayer:
                 cur_state_num = sc.state_to_num(self.agent_slices[i])
                 
                 # get current q max index
-                cur_q_max_index = np.argmax(self.q_tables[i][cur_state_num])
+                cur_q_max_index = self.cur_actions[i][0]
+                for cur_q_ind in self.cur_actions[i]:
+                    cur_q = self.q_tables[i][cur_state_num][cur_q_ind]
+                    if cur_q > self.q_tables[i][cur_state_num][cur_q_max_index]:
+                        cur_q_max_index = cur_q_ind
                 # get all others of same q value in action space for current state, if any exist
                 cur_same_acts = np.where(self.q_tables[i][cur_state_num] == self.q_tables[i][cur_state_num][cur_q_max_index])
-                #print(self.cur_actions)
-                #print(cur_same_acts)
-                #print(cur_q_max_index)
                 # if there's multiple, select one at random from the list of those of the same max,
                 #   whilst also checking for their inclusion in the current expected action space.
                 if np.shape(cur_same_acts)[1] != 1:
-                    cur_q_max_index = np.random.choice(np.intersect1d(np.array(self.cur_actions[i]), cur_same_acts[0]))
+                    cur_q_max_index = np.random.choice(np.intersect1d(np.array(self.cur_actions[i]), cur_same_acts))
                 # otherwise append the action found with argmax, ensuring it's within the list of possible actions
                 else:
-                    cur_q_max_index = np.intersect1d(np.array(self.cur_actions[i]), cur_same_acts[0])[0]
+                    cur_q_max_index = np.intersect1d(np.array(self.cur_actions[i]), cur_same_acts)
+
+                    cur_q_max_index = cur_q_max_index[0]
                     # check if cur_max is empty. if so, throw an exception
                     if cur_q_max_index == None:
                         raise ValueError('No action selected.')
@@ -152,7 +155,7 @@ class TablePlayer:
         # if multiple, select one at random
         if np.shape(cur_same_qmax)[1] != 1:
             q_max_index = np.random.choice(cur_same_qmax[0])
-
+        
         # update cur_actions for the selected q-table
         self.cur_actions[q_max_index].remove(self.max_q_actions[q_max_index])
 
