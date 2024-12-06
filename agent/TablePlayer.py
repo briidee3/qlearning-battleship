@@ -9,6 +9,9 @@ from . import QAgent as qa
 from . import StateConversion as sc
 from . import Config
 
+# set rng seed
+np.random.seed(12345)
+
 
 class TablePlayer:
 
@@ -31,6 +34,12 @@ class TablePlayer:
         self.max_q_actions = []
         self.max_q_vals = []
 
+        # keep track of available actions for each slice
+        self.cur_actions = [np.arange(0, 16, dtype = "int8").tolist(), 
+                            np.arange(0, 16, dtype = "int8").tolist(), 
+                            np.arange(0, 16, dtype = "int8").tolist(), 
+                            np.arange(0, 16, dtype = "int8").tolist()]
+        print(self.cur_actions[0])
         # data trackers
         self.turn = 0
         self.num_shots = 0
@@ -83,30 +92,59 @@ class TablePlayer:
         # reset the lists
         self.max_q_actions = []
         self.max_q_vals = []
+        print(self.cur_actions)
         # go thru each agent
         for i in range(self.q_steps):
-            # get num for current state
-            #print(self.agent_slices[i])
-            cur_state_num = sc.state_to_num(self.agent_slices[i])
-            #print(self.q_tables[i][cur_state_num])
-            #print(i)
-            #print(cur_state_num)
-            # add index of max q
-            self.max_q_actions.append(np.argmax(self.q_tables[i][cur_state_num]))
-            # add max q
-            self.max_q_vals.append(self.q_tables[i][cur_state_num][self.max_q_actions[i]])
+            # check if no actions left
+            if self.cur_actions[i] != []:
+                # get num for current state
+                cur_state_num = sc.state_to_num(self.agent_slices[i])
+                
+                # get current q max index
+                cur_q_max_index = np.argmax(self.q_tables[i][cur_state_num])
+                # get all others of same q value in action space for current state, if any exist
+                cur_same_acts = np.where(self.q_tables[i][cur_state_num] == self.q_tables[i][cur_state_num][cur_q_max_index])
+                print(self.cur_actions)
+                print(cur_same_acts)
+                print(cur_q_max_index)
+                # if there's multiple, select one at random from the list of those of the same max,
+                #   whilst also checking for their inclusion in the current expected action space.
+                if np.shape(cur_same_acts)[1] != 1:
+                    cur_q_max_index = np.random.choice(np.intersect1d(np.array(self.cur_actions[i]), cur_same_acts[0]))
+                # otherwise append the action found with argmax, ensuring it's within the list of possible actions
+                else:
+                    cur_q_max_index = np.intersect1d(np.array(self.cur_actions[i]), cur_same_acts[0])[0]
+                    # check if cur_max is empty. if so, throw an exception
+                    if cur_q_max_index == None:
+                        raise ValueError('No action selected.')
+                
+                # add current max q to max_q_actions
+                self.max_q_actions.append(cur_q_max_index)
+                
 
-        # return the index pertaining to the q-table with max q val
-        q_max = np.argmax(self.max_q_vals)
-        # if max is 0, pick one of them at random
-        if q_max == 0:
-            q_max = np.random.randint(4)
-            self.max_q_actions = [np.random.randint(0, 15)] * 4
+                # add max q
+                self.max_q_vals.append(self.q_tables[i][cur_state_num][cur_q_max_index])
+            # if empty, put in some fake values to prevent this one from being picked without messing up the ordering
+            else:
+                self.max_q_actions.append(-3)
+                self.max_q_vals.append(-9999999)
 
-        #print(self.max_q_actions)
-        #print(self.max_q_vals)
-        #print()
-        return q_max
+        # convert max_q_vals to np array
+        print(self.max_q_vals)
+        self.max_q_vals = np.array(self.max_q_vals)
+
+        # get the index pertaining to the q-table with max q val
+        q_max_index = np.argmax(self.max_q_vals)
+        # check if others have same val
+        cur_same_qmax = np.where(self.max_q_vals == self.max_q_vals[q_max_index])
+        # if multiple, select one at random
+        if np.shape(cur_same_qmax)[1] != 1:
+            q_max_index = np.random.choice(cur_same_qmax[0])
+
+        # update cur_actions for the selected q-table
+        self.cur_actions[q_max_index].remove(self.max_q_actions[q_max_index])
+
+        return q_max_index
 
 
     # get the next board state with regards to the given q-table, action, current state indices
@@ -138,7 +176,7 @@ class TablePlayer:
 
         # return the current action for use in evaluation
         action = self.max_q_actions[cur_agent]
-        print("Agent, action:", cur_agent, action)
+        #sprint("Agent, action:", cur_agent, action)
         #print("Board:\n%s\n%s\n%s\n%s" % (str(self.agent_slices[0].reshape(4,4)), str(self.agent_slices[1].reshape(4,4)), str(self.agent_slices[2].reshape(4,4)), str(self.agent_slices[3].reshape(4,4))))
         coords = []
         #print(self.enemy_macro_board)
