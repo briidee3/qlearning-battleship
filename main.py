@@ -27,7 +27,7 @@ for i in range(num_games):
 # send print back to console
 sys.stdout = init_stdout
 
-print("\nUsing empty q-tables:")
+print("\nUsing trained q-tables:")
 print("\tThe q-agent won {:10.2f} percent of the time.".format(100 * (agent_wins / num_games)))
 print("\tThe random agent won {:10.2f} percent of the time.\n".format(100 * (monte_wins / num_games)))
 print("\n\tNumber of q-agent wins:\t%d\n\tNumber of games:\t%d\n" % (agent_wins, num_games))
