@@ -2,7 +2,6 @@
 # Evaluate the agent against a monte carlo opponent
 
 import numpy as np
-import random
 import multiprocessing as mp
 import time
 
@@ -12,7 +11,6 @@ import agent.QAgent as qa
 import agent.TablePlayer as tp
 from game import create_random_opponent
 
-random.seed(865675876)
 np.random.seed(2198572194)
 
 ships = [2,2,3,3,4]
@@ -20,20 +18,22 @@ num_ship_cells = np.sum(ships)
 
 
 # run through one game loop
-def play_game():
+def play_game(seed = 1):
+    # seed rng
+    np.random.seed(seed)
     # keep track of number of turns
     num_turns = 0
     # keep track of scores
     scores = [0, 0]     # agent, random
     # generate a random board for each player (q-agent player 1, monte carlo player 2)
-    enemy_boards = [gen_random_board(), np.ndarray.flatten(gen_random_board())]   # agent, random
+    enemy_boards = [gen_random_board(seed), np.ndarray.flatten(gen_random_board(int(seed ** 2 % 1000000)))]   # agent, random
     # create boards to represent the shots already taken
     shots_boards = [np.zeros((64), dtype = cfg.cell_state_dtype)] * 2
     # keep track of the targets of each player
     targets = [0, 0]    # agent, random
 
     # create an agent to play the game
-    table_player = tp.TablePlayer()
+    table_player = tp.TablePlayer(seed = seed)
     # set the board state for the q-agent player
     table_player.set_enemy_board_state(enemy_boards[0])
     # flatten the board after giving it to the player, for coherence with the other board below
@@ -48,7 +48,7 @@ def play_game():
         targets[1] = np.random.randint(64)
         # generate a random number until it gets one corresponding to an empty cell
         while 0 in shots_boards[1] and shots_boards[1][targets[1]] != 0:
-            targets[1] = random.randint(0, 63)
+            targets[1] = np.random.randint(64)
 
         # get the index for the move of the agent player
         targets[0] = table_player.step()
@@ -90,7 +90,8 @@ def play_game():
 
 
 # create random board
-def gen_random_board():
+def gen_random_board(seed = 1):
+    np.random.seed(seed)
     rand_board = np.ndarray.flatten(np.array(create_random_opponent(8, ships).get_board()))
     rand_board[rand_board == 'S'] = 1
     rand_board[rand_board == '~'] = 0
@@ -111,15 +112,17 @@ def evaluate(num_games = 1):
     # go through all of the games
     for i in range(num_games):
         #print("Game %d: " % i)
-        cur_stats = play_game()
+        # re-seed rng
+        new_seed = int(np.random.randint(0, 999999999) * time.time() % 1000000)
+        cur_stats = play_game(seed = new_seed)
         wins += cur_stats[0]
         score_sum += cur_stats[1]
         turns_sum += cur_stats[2]
 
     # calculate and print out stats
-    print("Evaluation complete.\n\tWin/loss ratio: %d/%d\n\tAverage score: %d\n\tAverage number of turns: %d" % 
+    print("Empty q-table:\tEvaluation complete.\n\tWin/loss ratio: %d/%d\n\tAverage score: %d\n\tAverage number of turns: %d\n" % 
         ((wins), (num_games - wins), (score_sum / num_games), (turns_sum / num_games)))
 
 
 if __name__ == "__main__":
-    evaluate(100)
+    evaluate(10000)

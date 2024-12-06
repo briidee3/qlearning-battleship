@@ -40,7 +40,7 @@ class TablePlayer:
                             np.arange(0, 16, dtype = "int8").tolist(), 
                             np.arange(0, 16, dtype = "int8").tolist(), 
                             np.arange(0, 16, dtype = "int8").tolist()]
-        print(self.cur_actions[0])
+        #print(self.cur_actions[0])
         # data trackers
         self.turn = 0
         self.num_shots = 0
@@ -104,7 +104,7 @@ class TablePlayer:
         # reset the lists
         self.max_q_actions = []
         self.max_q_vals = []
-        print(self.cur_actions)
+        #print(self.cur_actions)
         # go thru each agent
         for i in range(self.q_steps):
             # check if no actions left
@@ -116,9 +116,9 @@ class TablePlayer:
                 cur_q_max_index = np.argmax(self.q_tables[i][cur_state_num])
                 # get all others of same q value in action space for current state, if any exist
                 cur_same_acts = np.where(self.q_tables[i][cur_state_num] == self.q_tables[i][cur_state_num][cur_q_max_index])
-                print(self.cur_actions)
-                print(cur_same_acts)
-                print(cur_q_max_index)
+                #print(self.cur_actions)
+                #print(cur_same_acts)
+                #print(cur_q_max_index)
                 # if there's multiple, select one at random from the list of those of the same max,
                 #   whilst also checking for their inclusion in the current expected action space.
                 if np.shape(cur_same_acts)[1] != 1:
@@ -142,7 +142,7 @@ class TablePlayer:
                 self.max_q_vals.append(-9999999)
 
         # convert max_q_vals to np array
-        print(self.max_q_vals)
+        #print(self.max_q_vals)
         self.max_q_vals = np.array(self.max_q_vals)
 
         # get the index pertaining to the q-table with max q val
