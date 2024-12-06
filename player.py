@@ -1,12 +1,13 @@
 from ship import ship
-import random
+import numpy as np
 import agent.TablePlayer as tp
-random.seed(6465)
 
 class player:
-  def __init__(self, board_size, type_ = "human"):
+  def __init__(self, board_size, type_ = "human", seed = 19181716):
+    self.seed = seed
+    np.random.seed(seed)
     if type_ == "agent":
-      self.table_player = tp.TablePlayer()
+      self.table_player = tp.TablePlayer(seed = np.random.randint(0, 999999))
     else:
       self.table_player = None
     self.type = type_
@@ -15,6 +16,8 @@ class player:
     # Initialize a board with empty cells
     self.board = [['~' for _ in range(board_size)] for _ in range(board_size)]
     self.enemy_guesses = [[2 for _ in range(board_size)] for _ in range(board_size)]
+    # initialize list of possible guesses to prevent RNG picking same move over and over
+    self.guesses_left = [np.arange(board_size).tolist() for _ in range(board_size)]
 
   def print_board(self):
     # Print the board in a readable format
@@ -126,6 +129,7 @@ class player:
     return score
 
   def ship_input(self, ship_length):
+    np.random.seed(self.seed)   # set seed
     board = self.board
     if self.type == "human":
       print("Where does player 1 want to place the ship of length", ship_length, "?")
@@ -137,30 +141,40 @@ class player:
       direction = input()
       return [row, col, direction]
     elif self.type == "random":
-      row = random.randint(0,self.board_size-1)
-      col = random.randint(0,self.board_size-1)
-      direction = random.choice(['H','V'])
+      row = np.random.randint(0,self.board_size)
+      col = np.random.randint(0,self.board_size)
+      direction = np.random.choice(['H','V'])
+      self.seed = np.random.randint(0, 999999999)   # update seed after its use
       return [row, col, direction]
     elif self.type == "agent":
       # take input from agent
-      row = random.randint(0, self.board_size - 1)
-      col = random.randint(0, self.board_size - 1)
-      direction = random.choice(['H', 'V'])
+      row = np.random.randint(0, self.board_size)
+      col = np.random.randint(0, self.board_size)
+      direction = np.random.choice(['H', 'V'])
+      self.seed = np.random.randint(0, 999999999)  # update seed after its use
       return [row, col, direction]
+    
 
   def shoot_input(self):#, guesses, enemy):
+    np.random.seed(self.seed)   # set seed
     if self.type == "human":
       #print("Player 1's guesses (2:unknown, 1:miss, 0:hit):")
       #enemy.print_guesses()
       print("Where does player 1 want to attack ?")
-      print("Enter row 0 to", self.board_size - 1, ":")
+      print("Enter row 0 to", self.board_size, ":")
       row = int(input())
-      print("Enter column 0 to", self.board_size - 1, ":")
+      print("Enter column 0 to", self.board_size, ":")
       col = int(input())
       return [row, col]
     elif self.type == "random":
-      row = random.randint(0,self.board_size-1)
-      col = random.randint(0,self.board_size-1)
+      row = np.random.randint(0,self.board_size)    # select random row
+      #col = np.random.randint(0,self.board_size)
+      while self.guesses_left[row] == []:                 # handle if an empty row was selected
+        row = np.random.randint(0,self.board_size)  # select random row
+      col = np.random.choice((self.guesses_left[row]))                   # select randomly from available actions left in current row
+      print(self.guesses_left[row], col)
+      self.guesses_left[row].remove(col)            # remove current guess from set of available actions
+      self.seed = np.random.randint(0, 999999999)   # update seed after its use
       return [row, col]
     elif self.type == "agent":
       [row, col] = self.table_player.step()

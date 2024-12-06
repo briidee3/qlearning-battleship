@@ -62,7 +62,6 @@ def ts_init(ts, id_ = 1):
     #   spawning 4 child procs (one per quadrant) of QAgent per iteration.
     ts.run_main(id_)
 
-
 if __name__ == "__main__":
     #try:
         # set the method for spawning processes

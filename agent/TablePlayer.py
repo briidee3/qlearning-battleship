@@ -9,13 +9,14 @@ from . import QAgent as qa
 from . import StateConversion as sc
 from . import Config
 
-# set rng seed
-np.random.seed(12345)
 
 
 class TablePlayer:
 
-    def __init__(self):
+    def __init__(self, seed = 31415):
+        # set the seed for pseudo-randomized RNG seeding
+        self.seed = seed
+        np.random.seed(seed)
         # step size for use slicing the board
         self.step_size = 4
         # number of micro-states being used
@@ -44,6 +45,9 @@ class TablePlayer:
         self.turn = 0
         self.num_shots = 0
         self.num_hits = 0
+
+        # used for setting the RNG seed between runs, to avoid determinism of one-seed RNG
+        #self.seed = 12345
 
 
     # reset stats of the agent
@@ -87,8 +91,16 @@ class TablePlayer:
         #exit()
 
 
+    # Set the RNG seed
+    def set_seed(self, seed = 54321):
+        self.seed = seed
+
+
     # Get the max qs for each of the board quadrants
     def get_q_max(self):
+        # set the seed for changing deterministic output of RNG
+        np.random.seed(self.seed)
+
         # reset the lists
         self.max_q_actions = []
         self.max_q_vals = []

@@ -18,8 +18,9 @@ def create_random_opponent(board_size, ships):
   return random_opponent
 
 class game:
-  def __init__(self, board_size, num_ships, player1_type, player2_type):
-    np.random.seed(148721487)
+  def __init__(self, board_size, num_ships, player1_type, player2_type, seed = 54321):
+    self.seed = seed
+    np.random.seed(seed)
     self.num_ships = num_ships
     self.board_size = board_size
     carrier = ship(5)
@@ -29,8 +30,8 @@ class game:
     destroyer2 = ship(2)
     destroyer1 = ship(2)
     self.ships = [destroyer1, destroyer2, submarine, cruiser, battleship, carrier]
-    self.player1 = player(board_size, player1_type)
-    self.player2 = player(board_size, player2_type)
+    self.player1 = player(board_size, player1_type, seed = np.random.randint(0, 999999))
+    self.player2 = player(board_size, player2_type, seed = np.random.randint(0, 999999))
 
   def start(self): #let the games begin
     self.place_phase()
