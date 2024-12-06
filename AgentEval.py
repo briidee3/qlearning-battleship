@@ -31,6 +31,8 @@ def play_game(seed = 1):
     shots_boards = [np.zeros((64), dtype = cfg.cell_state_dtype)] * 2
     # keep track of the targets of each player
     targets = [0, 0]    # agent, random
+    # keep track of the moves not taken for monte carlo player to help speed things up a bit
+    mc_actions = np.arange(0, 64, dtype = "int8").tolist()
 
     # create an agent to play the game
     table_player = tp.TablePlayer(seed = seed)
@@ -45,10 +47,8 @@ def play_game(seed = 1):
         num_turns += 1
 
         # represent monte carlo target index
-        targets[1] = np.random.randint(64)
-        # generate a random number until it gets one corresponding to an empty cell
-        while 0 in shots_boards[1] and shots_boards[1][targets[1]] != 0:
-            targets[1] = np.random.randint(64)
+        targets[1] = np.random.choice(mc_actions)
+        mc_actions.remove(targets[1])   # remove from actions list after taking action
 
         # get the index for the move of the agent player
         targets[0] = table_player.step()
@@ -120,7 +120,7 @@ def evaluate(num_games = 1):
         turns_sum += cur_stats[2]
 
     # calculate and print out stats
-    print("Empty q-table:\tEvaluation complete.\n\tWin/loss ratio: %d/%d\n\tAverage score: %d\n\tAverage number of turns: %d\n" % 
+    print("Trained q-table:\tEvaluation complete.\n\tWin/loss ratio: %d/%d\n\tAverage score: %d\n\tAverage number of turns: %d\n" % 
         ((wins), (num_games - wins), (score_sum / num_games), (turns_sum / num_games)))
 
 
