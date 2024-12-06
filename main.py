@@ -9,11 +9,11 @@ np.random.seed(int(time.time() % 1000000))
 
 agent_wins = 0
 monte_wins = 0
-num_games = 100
+num_games = 10000
 
 # send print to os.devnull, essentially turning off print statements from our view
 init_stdout = sys.stdout
-#sys.stdout = open(os.devnull, "w")
+sys.stdout = open(os.devnull, "w")
 
 for i in range(num_games):
   g = game(8,5, 'agent','random', seed = np.random.randint(0, 999999999))
