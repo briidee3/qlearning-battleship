@@ -32,12 +32,13 @@ class game:
     self.ships = [destroyer1, destroyer2, submarine, cruiser, battleship, carrier]
     self.player1 = player(board_size, player1_type, seed = np.random.randint(0, 999999))
     self.player2 = player(board_size, player2_type, seed = np.random.randint(0, 999999))
+    self.turn = 0
 
   def start(self): #let the games begin
     self.place_phase()
     winner = self.shooting_phase()
     print("Player", winner,"wins!")
-    return winner
+    return winner, self.turn
 
   def place_phase(self): #asks for ship placements from player 1, then player 2
     print("Player 1 placing phase:")
@@ -111,4 +112,5 @@ class game:
           success = True
           if score == win_condition:
             return 2 #returns the winner as player 2
+      self.turn += 1
     return winner
