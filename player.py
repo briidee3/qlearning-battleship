@@ -19,6 +19,16 @@ class player:
     # initialize list of possible guesses to prevent RNG picking same move over and over
     self.guesses_left = [np.arange(board_size).tolist() for _ in range(board_size)]
 
+    # keep track of whether or not currently hunting
+    self.hunting = False
+    # keep track of whether hunting vertically or horizontally or neither
+    self.hunt_dir = 0    # vertical = 1, horizontal = 2, N/A = 0
+    # keep track of where the most recent hit was
+    self.most_recent_hit = [-1, -1]
+    # keep track of if both ends of ship have been fired upon and missed, to stop hunting a ship when sunk
+    self.end_miss = [False, False]    # [top, bottom] or [left, right]
+    # 0 - neither, 1 - top and not bottom, 2 - bottom and not top, 3 - both (for horizontal, replace "top" with left and "bottom" with right)
+
   def print_board(self):
     # Print the board in a readable format
     print("  " + " ".join(map(str, range(self.board_size))))
@@ -116,6 +126,10 @@ class player:
     elif self.board[row][col] == 'S':
       self.enemy_guesses[row][col] = 0
       print("Hit")
+      # if hunter, update hunter instance vars
+      if self.type == "hunter":
+        self.most_recent_hit = [row, col]   # update most recent hit
+        self.hunting = True
       return 1
     elif self.board[row][col] == '~':
       self.enemy_guesses[row][col] = 1
@@ -140,20 +154,13 @@ class player:
       print("Enter direction (H or V) :")
       direction = input()
       return [row, col, direction]
-    elif self.type == "random":
+    elif self.type == "random" or self.type == "agent" or self.type == "hunt":
       row = np.random.randint(0,self.board_size)
       col = np.random.randint(0,self.board_size)
       direction = np.random.choice(['H','V'])
       self.seed = np.random.randint(0, 999999999)   # update seed after its use
       return [row, col, direction]
-    elif self.type == "agent":
-      # take input from agent
-      row = np.random.randint(0, self.board_size)
-      col = np.random.randint(0, self.board_size)
-      direction = np.random.choice(['H', 'V'])
-      self.seed = np.random.randint(0, 999999999)  # update seed after its use
-      return [row, col, direction]
-    
+
 
   def shoot_input(self):#, guesses, enemy):
     np.random.seed(self.seed)   # set seed
@@ -177,7 +184,34 @@ class player:
       self.seed = np.random.randint(0, 999999999)   # update seed after its use
       return [row, col]
     elif self.type == "agent":
-      [row, col] = self.table_player.step()
-      print("Agent guess: [%d, %d]" % (row, col))
-      return [row, col]
+      coords = self.table_player.step()
+      print("Agent guess: [%d, %d]" % (coords[0], coords[1]))
+      return coords
+    elif self.type == "hunt":
+      # handle if hunting
+      if self.hunting:
+        # handle if ends missed and is hunting
+        if self.end_miss[0] and self.end_miss[0]:
+          # reset hunting instance vars
+          self.hunting = False    # get out of hunting mode
+          self.hunt_dir = 0       # reset hunt direction
+        # hunt
+        #match self.hunt_dir:
+          # if hunting dir not found yet
+
+          # if hunting vertically
+        #  case 1:
+            # check if top and not bottom
+        #    if self.end_miss[0] and not self.end_miss[1]
+
+      # handle if not hunting
+      if not self.hunting:    # done using if instead of else so this is called after exiting hunting mode above
+        row = np.random.randint(0,self.board_size)    # select random row
+        #col = np.random.randint(0,self.board_size)
+        while self.guesses_left[row] == []:                 # handle if an empty row was selected
+          row = np.random.randint(0,self.board_size)  # select random row
+        col = np.random.choice((self.guesses_left[row]))                   # select randomly from available actions left in current row
+        print(self.guesses_left[row], col)
+        self.guesses_left[row].remove(col)            # remove current guess from set of available actions
+        self.seed = np.random.randint(0, 999999999)   # update seed after its use
 
