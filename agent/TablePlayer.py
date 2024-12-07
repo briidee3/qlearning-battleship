@@ -159,6 +159,8 @@ class TablePlayer:
         # update cur_actions for the selected q-table
         self.cur_actions[q_max_index].remove(self.max_q_actions[q_max_index])
 
+        self.seed = np.random.randint(0, 9999999)
+
         return q_max_index
 
 
