@@ -33,6 +33,7 @@ def play_game(seed = 1):
     targets = [0, 0]    # agent, random
     # keep track of the moves not taken for monte carlo player to help speed things up a bit
     mc_actions = np.arange(0, 64, dtype = "int8").tolist()
+    tp_actions = np.arange(0, 64, dtype = "int8").tolist()
 
     # create an agent to play the game
     table_player = tp.TablePlayer(seed = seed)
@@ -53,6 +54,7 @@ def play_game(seed = 1):
         # get the index for the move of the agent player
         targets[0] = table_player.step()
         targets[0] = int(targets[0][0] * 8 + targets[0][1])
+        tp_actions.remove(targets[0])
         #print("Board:%s\nMove:%s" % (str(enemy_boards[0].reshape((8,8))), str(targets[0])))
         #if num_turns == 2:
         #    return [1,2,3]
@@ -68,6 +70,8 @@ def play_game(seed = 1):
             # otherwise it's a miss, update accordingly
             else:
                 shots_boards[i][targets[i]] = 2
+        #print(shots_boards[0].reshape(8,8), shots_boards[1].reshape(8,8))
+        print(targets)
     
     # declare the winner, set up statistics
     #print("Current game finished.")
@@ -107,7 +111,7 @@ def evaluate(num_games = 1):
     # used to calculate win/loss ratio for the agent at the end
     wins = 0
     # used to keep track of avg number of turns in a game
-    turns_sum = 0
+    turns_sum = [0, 0]
 
     # go through all of the games
     for i in range(num_games):
@@ -117,12 +121,16 @@ def evaluate(num_games = 1):
         cur_stats = play_game(seed = new_seed)
         wins += cur_stats[0]
         score_sum += cur_stats[1]
-        turns_sum += cur_stats[2]
+        if cur_stats[0] == 1:
+            turns_sum[0] += cur_stats[2]
+        else:
+            turns_sum[1] += cur_stats[2]
 
     # calculate and print out stats
-    print("Trained q-table:\tEvaluation complete.\n\tWin/loss ratio: %d/%d\n\tAverage score: %d\n\tAverage number of turns: %d\n" % 
-        ((wins), (num_games - wins), (score_sum / num_games), (turns_sum / num_games)))
+    print("Trained q-table:\tEvaluation complete.\n\tWin/loss rmonte_winsatio: %d/%d\n\tAverage score: {:10.2f}\n\tAverage number of turns: {:10.2f}\n".format((score_sum / num_games), (turns_sum[0] / wins)) % 
+        ((wins), (num_games - wins)))
+    print("\nRandom stats:\n\tAvg number of turns: {:10.2f}".format((turns_sum[1]) / (num_games - wins + 0.000001)))
 
 
 if __name__ == "__main__":
-    evaluate(10000)
+    evaluate(100)
