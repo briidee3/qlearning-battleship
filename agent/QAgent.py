@@ -15,7 +15,7 @@ import multiprocessing as mp
 import numpy as np
 import os
 import sys
-import random
+import time
 
 from . import Config
 from . import StateConversion as sc
@@ -28,6 +28,8 @@ class QAgent:
         discount_factor = Config.discount_factor, learn_rate = Config.learn_rate, epochs = Config.epochs, name = "qt",
         epsilon_max = Config.epsilon_max, epsilon_min = Config.epsilon_min, decay_rate = Config.decay_rate, memmap = False):
 
+        #set seed
+        np.random.seed(int(time.time() % 10000000))
         # check if output should be muted, and if so, mute it
         if Config.mute_qa:
             sys.stdout = open(os.devnull, 'w')
@@ -236,12 +238,14 @@ class QAgent:
 
     # set things up for a new epoch
     def new_epoch(self, cur_epoch):
+        #set seed
+        np.random.seed(int(time.time() % 10000000))
         # update epsilon
         self.update_epsilon(cur_epoch)
-        
+
         # generate new boards until all ship cells haven't already been hit
         # select and set a new state randomly out of the set of possible states for the current enemy board
-        init_state = sc.state_to_num(random.choice(self.possible_boards))
+        init_state = sc.state_to_num(self.possible_boards[np.random.randint(0, 2**16)])#np.random.choice(self.possible_boards))
         self.set_state(init_state)
         # count the number of hits and shots already taken (shots taken is equivalent to turn count)
         self.count_board()
@@ -286,6 +290,8 @@ class QAgent:
 
     # determine the next action to use via an epsilon-greedy policy
     def choose_action_epsilon_greedy(self):
+        #set seed
+        np.random.seed(int(time.time() % 10000000))
         # pick a random num from 0 to 1, and check if it's larger than epsilon. if so, exploit
         if np.random.rand() > self.epsilon:
             # choose the next action using a greedy policy
@@ -299,6 +305,8 @@ class QAgent:
     
     # determine the next action via a greedy policy (for use in evaluation)
     def choose_action_greedy(self, calc_next = True):
+        #set seed
+        np.random.seed(int(time.time() % 10000000))
         try:
             # set cur_action to the first location of q_max (which at this point in runtime should be q_max of current state)
             action = np.argmax(self.q_table[self.cur_state_num])    # current action index in q-table
@@ -306,8 +314,9 @@ class QAgent:
             cur_same_acts = np.where(self.q_table[self.cur_state_num] == self.q_table[self.cur_state_num][action])
             # check if there's more than one action in the q-table with the current action.
             #   if so, select one of them at random, ensuring the chosen action is one of the available in cur_actions.
-            if np.shape(cur_same_acts)[1] != 1:
+            if np.shape(cur_same_acts)[1] > 1:
                 self.cur_action = np.random.choice(np.intersect1d(self.cur_actions, cur_same_acts))
+                print("\n", self.cur_actions, "\n", cur_same_acts, action, self.cur_action, "\n", self.q_table[self.cur_state_num])
             else:
                 # otherwise, set it to be the action found with argmax, checking to ensure the action is within cur_actions.
                 self.cur_action = np.intersect1d(self.cur_actions, cur_same_acts)
