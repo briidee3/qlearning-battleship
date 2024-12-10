@@ -37,5 +37,28 @@ def optimizing_test():
     
     print("Max:", np.max(np.array(data)))
 
+
+# compile one table from all existing tables, and each of their rotational permutations
+def rot_tables():
+    sum_table = np.memmap("./agent/q_table/tot_sum.np", dtype = "float32", mode = "r+", shape = (3**16, 16))
+
+    tables = []
+    for i in range(4):
+        tables.append(np.memmap("./agent/q_table/qt_%s_table.np" % str(i), dtype = "float32", mode = "r+", shape = (3**16, 16)))
+
+    # go through each rotational permutation for each state-action space
+    for state in range(3**16):
+        for r in range(4):  # can have 4 different rotations using rot90 per state-action space
+            cur_rot_state = sc.num_to_state(state).reshape(4,4)
+            for i in range(r):
+                cur_rot_state = np.rot90(cur_rot_state)
+            cur_rot_state = cur_rot_state.reshape(16)
+            cur_state_num = sc.state_to_num(cur_rot_state)
+            
+            for table in tables:
+                sum_table[cur_state_num] += table[cur_state_num] 
+
+
+
 if __name__ == "__main__":
     optimizing_test()
