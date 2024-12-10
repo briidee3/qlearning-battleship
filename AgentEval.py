@@ -54,7 +54,9 @@ def play_game(seed = 1):
         # get the index for the move of the agent player
         targets[0] = table_player.step()
         targets[0] = int(targets[0][0] * 8 + targets[0][1])
-        tp_actions.remove(targets[0])
+        #targets[0] = np.random.choice(tp_actions)
+        #tp_actions.remove(targets[0])
+        
         #print("Board:%s\nMove:%s" % (str(enemy_boards[0].reshape((8,8))), str(targets[0])))
         #if num_turns == 2:
         #    return [1,2,3]
@@ -71,7 +73,7 @@ def play_game(seed = 1):
             else:
                 shots_boards[i][targets[i]] = 2
         #print(shots_boards[0].reshape(8,8), shots_boards[1].reshape(8,8))
-        print(targets)
+        #print(targets)
     
     # declare the winner, set up statistics
     #print("Current game finished.")
@@ -133,4 +135,4 @@ def evaluate(num_games = 1):
 
 
 if __name__ == "__main__":
-    evaluate(100)
+    evaluate(100000)
