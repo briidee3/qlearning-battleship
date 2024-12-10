@@ -27,7 +27,7 @@ decay_rate = 0.0008
 ## OPTIONS
 
 # mode of operation for the QAgents (train or eval/play)
-mode = "eval"
+mode = "train"
 # set epsilon and learn_rate to 0 to only exploit current knowledgess during eval
 if mode == "eval":
     epsilon = 0
@@ -39,6 +39,7 @@ num_ts_subprocs = 2
 num_ts_iter = 1
 # chunk size for multiprocessing pools
 chunk_size = 1
+num_runs = 1
 
 # save statistics (used for optimizing hyperparams)
 save_stats = False

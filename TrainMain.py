@@ -4,6 +4,7 @@
 import numpy as np
 import multiprocessing as mp
 import time
+import os, sys
 
 import agent.Config as cfg
 import agent.TrainSubtables as ts
@@ -62,42 +63,50 @@ def ts_init(ts, id_ = 1):
     #   spawning 4 child procs (one per quadrant) of QAgent per iteration.
     ts.run_main(id_)
 
+
 if __name__ == "__main__":
     #try:
         # set the method for spawning processes
     # set method for spawning process if not windows
     if os.name != "nt":
         mp.set_start_method('fork', force = True)
-    #except RuntimeError:
-    #    pass
 
 
     # set up queue and pipes for sending and receiving randomly generated boards
     board_queue = mp.Queue()
     sendit, halfpipe = mp.Pipe()
 
+
     # set up random board generator
     rbg_proc = mp.Process(target = random_board_generator, args = (board_queue, halfpipe))
     # start the RBG
     rbg_proc.start()
 
+    init_time = time.time()
 
-    # initialize the TrainSubtables processes
-    ts_procs = []
-    ts_objs = []
-    for i in range(cfg.num_ts_subprocs):
-        ts_objs.append(ts.TrainSubtables((8,8), 4, cfg.num_ts_iter, board_queue))
-        ts_procs.append(mp.Process(target = ts_init, args = [ts_objs[i], i + 1]))
-        ts_procs[i].start()
+    # go through the total desired number of runs
+    for run in range(cfg.num_runs):
+        # initialize the TrainSubtables processes
+        ts_procs = []
+        ts_objs = []
+        for i in range(cfg.num_ts_subprocs):
+            ts_objs.append(ts.TrainSubtables((8,8), 4, cfg.num_ts_iter, board_queue))
+            ts_procs.append(mp.Process(target = ts_init, args = [ts_objs[i], i + 1]))
+            ts_procs[i].start()
 
-    #with mp.Pool() as pool:
-    #    pool.imap_unordered(func = ts_init, iterable = ts_objs, chunksize = Config.chunk_size)
+        #with mp.Pool() as pool:
+        #    pool.starmap_async(func = ts_init, iterable = ts_objs, chunksize = cfg.chunk_size)
+        #    pool.close()
+        #    pool.join()
 
-
-    # wait for processes to end
-    for proc in ts_procs:
-        proc.join()
+        # wait for processes to end
+        for proc in ts_procs:
+            proc.join()
 
     # end the RBG
     sendit.send("end_run")
+    time.sleep(1)
+    sendit.send("end_run")
     rbg_proc.join()
+
+    print("Time taken:" + str(time.time() - init_time))
