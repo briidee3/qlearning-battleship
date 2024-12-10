@@ -1,9 +1,10 @@
 from ship import ship
 import numpy as np
+import time
 import agent.TablePlayer as tp
 
 class player:
-  def __init__(self, board_size, type_ = "human", seed = 19181716):
+  def __init__(self, board_size, type_ = "human", seed = int(time.time() % 10000000)):
     self.seed = seed
     np.random.seed(seed)
     if type_ == "agent":
